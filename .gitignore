@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.env.*
+*.log
+.cache/
+.mypy_cache/
+.pytest_cache/
+
+# VSCode & JetBrains IDEs
+.vscode/
+.idea/
+
+# C#
+bin/
+obj/
+*.user
+*.suo
+*.csproj.user
+*.dll
+*.exe
+*.pdb
+
+# OS Junk
+.DS_Store
+Thumbs.db
+
+# Docker
+*.tar
+*.pid
+
+# Logs
+logs/
+*.log
+
+# Virtual Envs
+venv/
+.env/
