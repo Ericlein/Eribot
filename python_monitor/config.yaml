@@ -1,0 +1,10 @@
+monitoring:
+  cpu_threshold: 85
+  disk_threshold: 90
+  check_interval: 60
+
+slack:
+  channel: "#devops-alerts"
+
+remediator:
+  url: "http://localhost:5001/remediate"
