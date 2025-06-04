@@ -14,26 +14,14 @@ app.MapPost("/remediate", async (HttpContext context) =>
 
     string result = body?.IssueType switch
     {
-        "high_cpu" => RestartService("YourCpuHogService"),
-        "high_disk" => CleanTempFiles(),
-        _ => "Unknown issue"
+        "high_cpu" => RemediationService.RestartService("YourCpuHogService"),
+        "high_disk" => RemediationService.CleanTempFiles(),
+        _ => "Unknown issue type"
     };
 
     await context.Response.WriteAsync(result);
 });
 
 app.Run("http://localhost:5001");
-
-string RestartService(string serviceName)
-{
-    // placeholder
-    return $"Simulated restart of {serviceName}";
-}
-
-string CleanTempFiles()
-{
-    // placeholder
-    return "Simulated disk cleanup";
-}
 
 record Issue(string IssueType);
