@@ -1,0 +1,20 @@
+monitoring:
+  cpu_threshold: 85      # Can be overridden by env var
+  disk_threshold: 90
+  memory_threshold: 90
+  check_interval: 60
+
+slack:
+  channel: "#devops-alerts"  # Can be overridden by env var
+  username: "EriBot"
+  icon_emoji: ":robot_face:"
+
+remediator:
+  url: "http://localhost:5001"
+  timeout: 30
+  retry_attempts: 3
+
+logging:
+  level: "INFO"
+  max_file_size: "10MB"
+  backup_count: 5
