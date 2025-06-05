@@ -23,7 +23,7 @@ class TestMonitor:
             with patch('monitor.ConfigLoader') as mock_config_loader:
                 # Setup config mock
                 mock_config = Mock()
-                mock_config.monitoring.cpu_threshold = 90  # Changed to match actual config
+                mock_config.monitoring.cpu_threshold = 85  # Changed to match actual config
                 mock_config.monitoring.disk_threshold = 90
                 mock_config.monitoring.memory_threshold = 90
                 mock_config.monitoring.check_interval = 60
