@@ -1,0 +1,130 @@
+version: '3.8'
+
+services:
+  eribot-remediator:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.csharp
+    container_name: eribot-remediator
+    hostname: eribot-remediator
+    ports:
+      - "5001:5001"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://*:5001
+    volumes:
+      - ../logs:/app/logs:rw
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - eribot-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  eribot-monitor:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.python
+    container_name: eribot-monitor
+    hostname: eribot-monitor
+    environment:
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN}
+      - SLACK_CHANNEL=${SLACK_CHANNEL:-#devops-alerts}
+      - CPU_THRESHOLD=${CPU_THRESHOLD:-85}
+      - DISK_THRESHOLD=${DISK_THRESHOLD:-90}
+      - MEMORY_THRESHOLD=${MEMORY_THRESHOLD:-90}
+      - CHECK_INTERVAL=${CHECK_INTERVAL:-60}
+      - REMEDIATOR_URL=http://eribot-remediator:5001
+      - PYTHONPATH=/app
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    volumes:
+      - ../logs:/app/logs:rw
+      - ../config:/app/config:ro
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    privileged: true
+    restart: unless-stopped
+    depends_on:
+      eribot-remediator:
+        condition: service_healthy
+    networks:
+      - eribot-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Optional: Prometheus metrics for monitoring
+  eribot-metrics:
+    image: prom/node-exporter:latest
+    container_name: eribot-metrics
+    ports:
+      - "9100:9100"
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    networks:
+      - eribot-network
+
+  # Optional: Grafana dashboard
+  eribot-grafana:
+    image: grafana/grafana:latest
+    container_name: eribot-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+      - GF_INSTALL_PLUGINS=grafana-clock-panel,grafana-simple-json-datasource
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ./grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    networks:
+      - eribot-network
+
+  # Optional: Log aggregation
+  eribot-logstash:
+    image: docker.elastic.co/logstash/logstash:8.11.0
+    container_name: eribot-logstash
+    volumes:
+      - ../logs:/usr/share/logstash/logs:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    environment:
+      - "LS_JAVA_OPTS=-Xmx256m -Xms256m"
+    restart: unless-stopped
+    profiles:
+      - monitoring
+    networks:
+      - eribot-network
+
+networks:
+  eribot-network:
+    driver: bridge
+    name: eribot-network
+
+volumes:
+  grafana-storage:
+    driver: local
