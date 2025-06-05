@@ -48,26 +48,27 @@ jobs:
     
     - name: Create test config
       run: |
-        mkdir -p config
+        mkdir -p python_monitor/config
         cat > config/config.yaml << EOF
         monitoring:
-          cpu_threshold: 85
-          disk_threshold: 90
-          memory_threshold: 90
-          check_interval: 60
+          cpu_threshold: ${CPU_THRESHOLD}
+          disk_threshold: ${DISK_THRESHOLD}
+          memory_threshold: ${MEMORY_THRESHOLD}
+          check_interval: ${CHECK_INTERVAL}
         
         slack:
-          channel: "#test-channel"
+          bot_token: "${SLACK_BOT_TOKEN}"
+          channel: "${SLACK_CHANNEL}"
           username: "MonitorBot"
           icon_emoji: ":robot_face:"
         
         remediator:
-          url: "http://localhost:5001"
+          url: "${REMEDIATOR_URL}"
           timeout: 30
           retry_attempts: 2
         
         logging:
-          level: "DEBUG"
+          level: "${LOG_LEVEL}"
           max_file_size: "10MB"
           backup_count: 5
         EOF
@@ -88,7 +89,7 @@ jobs:
     - name: Test with pytest
       run: |
         cd python_monitor
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html -m "not integration"
+        PYTHONPATH=. pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
