@@ -246,6 +246,6 @@ jobs:
           • Commit: ${{ github.sha }}
           • Actor: ${{ github.actor }}
           
-          Please check the GitHub Actions logs for details.
+          Please check the GitHub Actions logs for more details.
       env:
         SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
