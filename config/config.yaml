@@ -12,7 +12,7 @@ slack:
 remediator:
   url: "http://localhost:5001"
   timeout: 30
-  retry_attempts: 3
+  retry_attempts: 2
 
 logging:
   level: "INFO"
