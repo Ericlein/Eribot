@@ -14,6 +14,16 @@ jobs:
   test-python:
     runs-on: ubuntu-latest
     
+    env:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL: "#test-channel"
+      CPU_THRESHOLD: "85"
+      DISK_THRESHOLD: "90"
+      MEMORY_THRESHOLD: "90"
+      CHECK_INTERVAL: "60"
+      REMEDIATOR_URL: "http://localhost:5001"
+      LOG_LEVEL: "DEBUG"
+
     steps:
     - uses: actions/checkout@v4
     
@@ -36,6 +46,32 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-cov pytest-mock
     
+    - name: Create test config
+      run: |
+        mkdir -p config
+        cat > config/config.yaml << EOF
+        monitoring:
+          cpu_threshold: 85
+          disk_threshold: 90
+          memory_threshold: 90
+          check_interval: 60
+        
+        slack:
+          channel: "#test-channel"
+          username: "MonitorBot"
+          icon_emoji: ":robot_face:"
+        
+        remediator:
+          url: "http://localhost:5001"
+          timeout: 30
+          retry_attempts: 2
+        
+        logging:
+          level: "DEBUG"
+          max_file_size: "10MB"
+          backup_count: 5
+        EOF
+    
     - name: Lint with flake8
       run: |
         pip install flake8
@@ -52,7 +88,7 @@ jobs:
     - name: Test with pytest
       run: |
         cd python_monitor
-        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html
+        pytest tests/ -v --cov=. --cov-report=xml --cov-report=html -m "not integration"
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -66,3 +102,30 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Restore dependencies
+      run: |
+        cd csharp_remediator
+        dotnet restore
+    
+    - name: Build
+      run: |
+        cd csharp_remediator
+        dotnet build --no-restore
+    
+    - name: Test
+      run: |
+        cd csharp_remediator
+        dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=opencover
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: csharp_remediator/tests/coverage.opencover.xml
+        flags: csharp
+        name: csharp-coverage
