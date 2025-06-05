@@ -24,7 +24,7 @@ EriBot is a monitoring system that consists of two main components:
 ## Prerequisites
 
 - Python 3.10+
-- .NET 7.0+ (Recommending 8.0+)
+- .NET 8.0+
 - Docker (optional)
 - Slack workspace with bot token
 
