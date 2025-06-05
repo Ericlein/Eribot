@@ -16,319 +16,296 @@ permissions:
 jobs:
   dependency-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install Python dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install safety pip-audit
-    
-    - name: Run Python safety check
-      run: |
-        safety check --json --output safety-report.json || true
-        
-    - name: Run pip-audit
-      run: |
-        pip-audit --format=json --output=pip-audit-report.json || true
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Restore .NET dependencies
-      run: |
-        cd csharp_remediator
-        dotnet restore
-    
-    - name: Check .NET vulnerabilities
-      run: |
-        cd csharp_remediator
-        dotnet list package --vulnerable --include-transitive --format json > ../dotnet-vulnerabilities.json || true
-    
-    - name: Upload dependency scan results
-      uses: actions/upload-artifact@v3
-      with:
-        name: dependency-scan-results
-        path: |
-          safety-report.json
-          pip-audit-report.json
-          dotnet-vulnerabilities.json
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install safety pip-audit
+
+      - name: Run Python safety check
+        run: |
+          safety check --json --output safety-report.json || true
+
+      - name: Run pip-audit
+        run: |
+          pip-audit --format=json --output=pip-audit-report.json || true
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore .NET dependencies
+        run: |
+          cd csharp_remediator
+          dotnet restore
+
+      - name: Check .NET vulnerabilities
+        run: |
+          cd csharp_remediator
+          dotnet list package --vulnerable --include-transitive --format json > ../dotnet-vulnerabilities.json || true
+
+      - name: Upload dependency scan results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-scan-results
+          path: |
+            safety-report.json
+            pip-audit-report.json
+            dotnet-vulnerabilities.json
 
   secret-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0  # Full history for secret scanning
-    
-    - name: Run TruffleHog OSS
-      uses: trufflesecurity/trufflehog@main
-      with:
-        path: ./
-        base: main
-        head: HEAD
-        extra_args: --debug --only-verified
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog OSS
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./ 
+          base: main
+          head: HEAD
+          extra_args: --debug --only-verified
 
   vulnerability-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Run Trivy vulnerability scanner
-      uses: aquasecurity/trivy-action@master
-      with:
-        scan-type: 'fs'
-        scan-ref: '.'
-        format: 'sarif'
-        output: 'trivy-results.sarif'
-    
-    - name: Upload Trivy scan results to GitHub Security tab
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
-      with:
-        sarif_file: 'trivy-results.sarif'
-    
-    - name: Run Trivy for Docker images
-      run: |
-        # Build images first
-        docker build -f docker/Dockerfile.python -t eribot-monitor:latest .
-        docker build -f docker/Dockerfile.csharp -t eribot-remediator:latest .
-        
-        # Scan images
-        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-          -v ${{ github.workspace }}:/workspace \
-          aquasec/trivy:latest image --format sarif --output /workspace/trivy-docker-monitor.sarif eribot-monitor:latest || true
-        
-        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-          -v ${{ github.workspace }}:/workspace \
-          aquasec/trivy:latest image --format sarif --output /workspace/trivy-docker-remediator.sarif eribot-remediator:latest || true
-    
-    - name: Upload Docker scan results
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
-      with:
-        sarif_file: 'trivy-docker-monitor.sarif'
-    
-    - name: Upload Docker scan results (Remediator)
-      uses: github/codeql-action/upload-sarif@v2
-      if: always()
-      with:
-        sarif_file: 'trivy-docker-remediator.sarif'
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Build and scan Docker images with Trivy
+        run: |
+          docker build -f docker/Dockerfile.python -t eribot-monitor:latest . || (echo "::error::Docker build failed" && exit 1)
+          docker build -f docker/Dockerfile.csharp -t eribot-remediator:latest . || (echo "::error::Docker build failed" && exit 1)
+
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}:/workspace aquasec/trivy:latest image --format sarif --output /workspace/trivy-docker-monitor.sarif eribot-monitor:latest || true
+
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v ${{ github.workspace }}:/workspace aquasec/trivy:latest image --format sarif --output /workspace/trivy-docker-remediator.sarif eribot-remediator:latest || true
+
+      - name: Upload Docker scan results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-docker-monitor.sarif'
+
+      - name: Upload Docker scan results (Remediator)
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: 'trivy-docker-remediator.sarif'
 
   code-security-analysis:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: python, csharp
-        queries: security-and-quality
-    
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
-      with:
-        dotnet-version: '8.0.x'
-    
-    - name: Build .NET project
-      run: |
-        cd csharp_remediator
-        dotnet build --configuration Release
-    
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
-      with:
-        category: "/language:python,csharp"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: python, csharp
+          queries: security-and-quality
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build .NET project
+        run: |
+          cd csharp_remediator
+          dotnet build --configuration Release
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:python,csharp"
 
   bandit-security-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-    
-    - name: Install Bandit
-      run: pip install bandit[toml]
-    
-    - name: Run Bandit
-      run: |
-        bandit -r python_monitor/ -f json -o bandit-report.json || true
-        bandit -r python_monitor/ -f txt -o bandit-report.txt || true
-    
-    - name: Upload Bandit results
-      uses: actions/upload-artifact@v3
-      with:
-        name: bandit-results
-        path: |
-          bandit-report.json
-          bandit-report.txt
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit
+        run: |
+          bandit -r python_monitor/ -f json -o bandit-report.json || true
+          bandit -r python_monitor/ -f txt -o bandit-report.txt || true
+
+      - name: Upload Bandit results
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-results
+          path: |
+            bandit-report.json
+            bandit-report.txt
 
   semgrep-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 10
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Run Semgrep
-      uses: returntocorp/semgrep-action@v1
-      with:
-        config: >-
-          p/security-audit
-          p/secrets
-          p/python
-          p/csharp
-        generateSarif: "1"
-    
-    - name: Upload SARIF file
-      uses: github/codeql-action/upload-sarif@v2
-      with:
-        sarif_file: semgrep.sarif
-      if: always()
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/security-audit
+            p/secrets
+            p/python
+            p/csharp
+          generateSarif: "1"
+
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: semgrep.sarif
+        if: always()
 
   docker-security-scan:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 15
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Set up Docker Buildx
-      uses: docker/setup-buildx-action@v3
-    
-    - name: Build Docker images
-      run: |
-        docker build -f docker/Dockerfile.python -t eribot-monitor:security-scan .
-        docker build -f docker/Dockerfile.csharp -t eribot-remediator:security-scan .
-    
-    - name: Run Docker Scout
-      run: |
-        # Install Docker Scout
-        curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
-        
-        # Scan images
-        docker scout cves eribot-monitor:security-scan --format sarif --output monitor-scout.sarif || true
-        docker scout cves eribot-remediator:security-scan --format sarif --output remediator-scout.sarif || true
-    
-    - name: Upload Scout results
-      uses: actions/upload-artifact@v3
-      with:
-        name: docker-scout-results
-        path: |
-          monitor-scout.sarif
-          remediator-scout.sarif
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker images
+        run: |
+          docker build -f docker/Dockerfile.python -t eribot-monitor:security-scan . || (echo "::error::Build failed" && exit 1)
+          docker build -f docker/Dockerfile.csharp -t eribot-remediator:security-scan . || (echo "::error::Build failed" && exit 1)
+
+      - name: Run Docker Scout
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/docker/scout-cli/main/install.sh | sh -s --
+          docker scout cves eribot-monitor:security-scan --format sarif --output monitor-scout.sarif || true
+          docker scout cves eribot-remediator:security-scan --format sarif --output remediator-scout.sarif || true
+
+      - name: Upload Scout results
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-scout-results
+          path: |
+            monitor-scout.sarif
+            remediator-scout.sarif
 
   configuration-security-check:
     runs-on: ubuntu-latest
-    
+    timeout-minutes: 5
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Check for hardcoded secrets in config
-      run: |
-        echo "🔍 Checking for potential security issues in configuration..."
-        
-        # Check for hardcoded tokens/passwords
-        if grep -r -i "password\|token\|secret\|key" config/ --exclude="*.example" --exclude="README*"; then
-          echo "⚠️  WARNING: Potential hardcoded secrets found in config files!"
-          exit 1
-        fi
-        
-        # Check Docker files for security best practices
-        echo "🐳 Checking Dockerfile security..."
-        
-        # Check if running as root
-        if grep -q "USER root" docker/Dockerfile.*; then
-          echo "⚠️  WARNING: Container running as root user!"
-        fi
-        
-        # Check for COPY --chown
-        if ! grep -q "COPY --chown" docker/Dockerfile.*; then
-          echo "💡 INFO: Consider using COPY --chown for better security"
-        fi
-        
-        echo "✅ Configuration security check completed"
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check for hardcoded secrets in config
+        run: |
+          echo "🔍 Checking configuration files for secrets..."
+          if grep -r -i "password\|token\|secret\|key" config/ --exclude="*.example" --exclude="README*"; then
+            echo "⚠️ WARNING: Hardcoded secrets found!"
+            exit 1
+          fi
+
+          echo "🐳 Checking Dockerfile security..."
+          if grep -q "USER root" docker/Dockerfile.*; then
+            echo "⚠️ WARNING: Container running as root!"
+          fi
+
+          if ! grep -q "COPY --chown" docker/Dockerfile.*; then
+            echo "💡 INFO: Consider using COPY --chown"
+          fi
 
   security-report:
     runs-on: ubuntu-latest
-    needs: [dependency-scan, secret-scan, vulnerability-scan, code-security-analysis, bandit-security-scan]
+    timeout-minutes: 5
+    needs:
+      - dependency-scan
+      - secret-scan
+      - vulnerability-scan
+      - code-security-analysis
+      - bandit-security-scan
+      - semgrep-scan
+      - docker-security-scan
+      - configuration-security-check
     if: always()
-    
+
     steps:
-    - name: Download all artifacts
-      uses: actions/download-artifact@v3
-    
-    - name: Generate security summary
-      run: |
-        echo "# 🔒 Security Scan Summary" > security-summary.md
-        echo "" >> security-summary.md
-        echo "## Scan Results" >> security-summary.md
-        echo "" >> security-summary.md
-        
-        # Check if any job failed
-        if [ "${{ needs.dependency-scan.result }}" != "success" ]; then
-          echo "❌ Dependency Scan: FAILED" >> security-summary.md
-        else
-          echo "✅ Dependency Scan: PASSED" >> security-summary.md
-        fi
-        
-        if [ "${{ needs.secret-scan.result }}" != "success" ]; then
-          echo "❌ Secret Scan: FAILED" >> security-summary.md
-        else
-          echo "✅ Secret Scan: PASSED" >> security-summary.md
-        fi
-        
-        if [ "${{ needs.vulnerability-scan.result }}" != "success" ]; then
-          echo "❌ Vulnerability Scan: FAILED" >> security-summary.md
-        else
-          echo "✅ Vulnerability Scan: PASSED" >> security-summary.md
-        fi
-        
-        if [ "${{ needs.code-security-analysis.result }}" != "success" ]; then
-          echo "❌ Code Security Analysis: FAILED" >> security-summary.md
-        else
-          echo "✅ Code Security Analysis: PASSED" >> security-summary.md
-        fi
-        
-        if [ "${{ needs.bandit-security-scan.result }}" != "success" ]; then
-          echo "❌ Bandit Security Scan: FAILED" >> security-summary.md
-        else
-          echo "✅ Bandit Security Scan: PASSED" >> security-summary.md
-        fi
-        
-        echo "" >> security-summary.md
-        echo "## Next Steps" >> security-summary.md
-        echo "- Review any failed scans in the GitHub Security tab" >> security-summary.md
-        echo "- Update dependencies with known vulnerabilities" >> security-summary.md
-        echo "- Address any secrets detected in the codebase" >> security-summary.md
-        
-        cat security-summary.md
-    
-    - name: Upload security summary
-      uses: actions/upload-artifact@v3
-      with:
-        name: security-summary
-        path: security-summary.md
+      - name: Download all artifacts
+        uses: actions/download-artifact@v3
+        continue-on-error: true
+
+      - name: Generate security summary
+        run: |
+          echo "# 🔒 Security Scan Summary" > security-summary.md
+          echo "" >> security-summary.md
+          echo "## Scan Results" >> security-summary.md
+          echo "" >> security-summary.md
+
+          for job in dependency-scan secret-scan vulnerability-scan code-security-analysis bandit-security-scan semgrep-scan docker-security-scan configuration-security-check; do
+            result="${{ needs[$job].result }}"
+            if [ "$result" != "success" ]; then
+              echo "❌ ${job//-/ }: FAILED" >> security-summary.md
+            else
+              echo "✅ ${job//-/ }: PASSED" >> security-summary.md
+            fi
+          done
+
+          echo "" >> security-summary.md
+          echo "## Next Steps" >> security-summary.md
+          echo "- Review failed scans in the GitHub Security tab" >> security-summary.md
+          echo "- Fix any critical issues before merging" >> security-summary.md
+          cat security-summary.md
+
+      - name: Upload security summary
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-summary
+          path: security-summary.md
