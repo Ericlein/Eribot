@@ -1,40 +1,122 @@
-# Python
-__pycache__/
-*.py[cod]
-*.egg-info/
+# Environment files
 .env
-.env.*
-*.log
-.cache/
-.mypy_cache/
-.pytest_cache/
-
-# VSCode & JetBrains IDEs
-.vscode/
-.idea/
-
-# C#
-bin/
-obj/
-*.user
-*.suo
-*.csproj.user
-*.dll
-*.exe
-*.pdb
-
-# OS Junk
-.DS_Store
-Thumbs.db
-
-# Docker
-*.tar
-*.pid
+*.env
+!.env.example
 
 # Logs
 logs/
 *.log
+*.log.*
 
-# Virtual Envs
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
 venv/
-.env/
+env/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.docstates
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+
+# JetBrains
+.idea/
+*.sln.iml
+
+# VS Code
+.vscode/settings.json
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/extensions.json
+*.code-workspace
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Docker
+.dockerignore
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Security
+secrets/
+ssl/
+*.key
+*.crt
+*.pem
+
+# Build artifacts
+*.nupkg
+*.snupkg
+project.lock.json
+project.fragment.lock.json
+artifacts/
