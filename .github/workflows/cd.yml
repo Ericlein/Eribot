@@ -1,0 +1,251 @@
+name: CD
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME_MONITOR: ${{ github.repository }}/monitor
+  IMAGE_NAME_REMEDIATOR: ${{ github.repository }}/remediator
+
+jobs:
+  build-and-push-images:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Log in to Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata for Monitor
+      id: meta-monitor
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MONITOR }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha,prefix={{branch}}-
+    
+    - name: Extract metadata for Remediator
+      id: meta-remediator
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_REMEDIATOR }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=semver,pattern={{version}}
+          type=semver,pattern={{major}}.{{minor}}
+          type=semver,pattern={{major}}
+          type=sha,prefix={{branch}}-
+    
+    - name: Build and push Monitor image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile.python
+        push: true
+        tags: ${{ steps.meta-monitor.outputs.tags }}
+        labels: ${{ steps.meta-monitor.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+    
+    - name: Build and push Remediator image
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: ./docker/Dockerfile.csharp
+        push: true
+        tags: ${{ steps.meta-remediator.outputs.tags }}
+        labels: ${{ steps.meta-remediator.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        platforms: linux/amd64,linux/arm64
+
+  create-release-artifacts:
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-and-push-images]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Build Python package
+      run: |
+        cd python_monitor
+        pip install build
+        python -m build
+    
+    - name: Build .NET application
+      run: |
+        cd csharp_remediator
+        
+        # Build for multiple platforms
+        dotnet publish -c Release -r win-x64 --self-contained -o ../dist/win-x64
+        dotnet publish -c Release -r linux-x64 --self-contained -o ../dist/linux-x64
+        dotnet publish -c Release -r osx-x64 --self-contained -o ../dist/osx-x64
+    
+    - name: Create installation packages
+      run: |
+        mkdir -p release-artifacts
+        
+        # Windows package
+        zip -r release-artifacts/eribot-windows-x64.zip \
+          scripts/install.ps1 \
+          dist/win-x64/ \
+          config/ \
+          python_monitor/ \
+          requirements.txt \
+          README.md \
+          QUICK_START.md
+        
+        # Linux package
+        tar -czf release-artifacts/eribot-linux-x64.tar.gz \
+          scripts/install.sh \
+          dist/linux-x64/ \
+          config/ \
+          python_monitor/ \
+          requirements.txt \
+          README.md \
+          QUICK_START.md
+        
+        # macOS package
+        tar -czf release-artifacts/eribot-macos-x64.tar.gz \
+          dist/osx-x64/ \
+          config/ \
+          python_monitor/ \
+          requirements.txt \
+          README.md \
+          QUICK_START.md
+        
+        # Docker Compose package
+        tar -czf release-artifacts/eribot-docker.tar.gz \
+          docker/ \
+          config/ \
+          .env.example \
+          README.md \
+          QUICK_START.md
+    
+    - name: Generate checksums
+      run: |
+        cd release-artifacts
+        sha256sum * > checksums.txt
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          release-artifacts/*
+        generate_release_notes: true
+        draft: false
+        prerelease: ${{ contains(github.ref, '-') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  deploy-staging:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [build-and-push-images]
+    environment: staging
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+    
+    - name: Deploy to staging
+      run: |
+        echo "🚀 Deploying to staging environment"
+        # Add your staging deployment logic here
+        # This could involve:
+        # - Updating Kubernetes manifests
+        # - Deploying to cloud provider
+        # - Running deployment scripts
+        # - Updating configuration
+        
+        # Example for SSH deployment:
+        # - name: Deploy via SSH
+        #   uses: appleboy/ssh-action@v1.0.0
+        #   with:
+        #     host: ${{ secrets.STAGING_HOST }}
+        #     username: ${{ secrets.STAGING_USER }}
+        #     key: ${{ secrets.STAGING_SSH_KEY }}
+        #     script: |
+        #       cd /opt/eribot
+        #       docker-compose pull
+        #       docker-compose up -d
+    
+    - name: Run smoke tests
+      run: |
+        echo "🧪 Running smoke tests against staging"
+        # Add smoke tests here
+        # curl -f https://staging.example.com/health
+        # python smoke_tests.py
+
+  notify-deployment:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [build-and-push-images, deploy-staging]
+    
+    steps:
+    - name: Notify Slack on success
+      if: ${{ needs.build-and-push-images.result == 'success' }}
+      uses: 8398a7/action-slack@v3
+      with:
+        status: success
+        text: |
+          🎉 EriBot deployment successful!
+          
+          • Branch: ${{ github.ref }}
+          • Commit: ${{ github.sha }}
+          • Actor: ${{ github.actor }}
+          
+          Docker images have been built and pushed to the registry.
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+    
+    - name: Notify Slack on failure
+      if: ${{ needs.build-and-push-images.result == 'failure' }}
+      uses: 8398a7/action-slack@v3
+      with:
+        status: failure
+        text: |
+          ❌ EriBot deployment failed!
+          
+          • Branch: ${{ github.ref }}
+          • Commit: ${{ github.sha }}
+          • Actor: ${{ github.actor }}
+          
+          Please check the GitHub Actions logs for details.
+      env:
+        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
