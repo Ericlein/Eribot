@@ -5,8 +5,6 @@ Contains all the dataclasses that define the configuration structure.
 """
 
 from dataclasses import dataclass
-from typing import Optional
-
 
 @dataclass
 class MonitoringConfig:
