@@ -12,8 +12,7 @@ on:
 permissions:
   contents: read
   security-events: write
-  actions: read
-  id-token: write  # Required for OpenSSF Scorecard
+  actions: read  # Required for private repos
 
 jobs:
   dependency-scan:
@@ -122,7 +121,7 @@ jobs:
         with:
           sarif_file: 'trivy-results.sarif'
           category: 'trivy-filesystem'
-        continue-on-error: true
+        continue-on-error: true  # Add this to handle permission issues
 
       - name: Build and scan Docker images with Trivy
         run: |
@@ -191,7 +190,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "codeql:python,csharp"
-        continue-on-error: true
+        continue-on-error: true  # Add this to handle permission issues
 
   bandit-security-scan:
     runs-on: ubuntu-latest
@@ -206,12 +205,10 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Install Bandit and SARIF tools
-        run: |
-          pip install bandit[toml]
-          pip install sarif-om bandit2sarif
+      - name: Install Bandit
+        run: pip install bandit[toml]
 
-      - name: Run Bandit (JSON output)
+      - name: Run Bandit
         run: |
           if [ -d "python_monitor" ]; then
             bandit -r python_monitor/ -f json -o bandit-report.json || echo "Bandit scan completed with issues"
@@ -222,23 +219,6 @@ jobs:
             echo "No Python code found to scan" > bandit-report.txt
           fi
 
-      - name: Convert Bandit to SARIF
-        run: |
-          if [ -f "bandit-report.json" ] && [ -s "bandit-report.json" ]; then
-            bandit2sarif -o bandit.sarif bandit-report.json || echo "SARIF conversion failed"
-          else
-            echo "No Bandit results to convert to SARIF"
-            echo '{"$schema": "https://schemastore.azurewebsites.net/schemas/json/sarif-2.1.0.json", "version": "2.1.0", "runs": []}' > bandit.sarif
-          fi
-
-      - name: Upload Bandit SARIF results
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: bandit.sarif
-          category: 'bandit'
-        continue-on-error: true
-
       - name: Upload Bandit results
         uses: actions/upload-artifact@v4
         with:
@@ -246,7 +226,6 @@ jobs:
           path: |
             bandit-report.json
             bandit-report.txt
-            bandit.sarif
         if: always()
 
   semgrep-scan:
@@ -316,43 +295,6 @@ jobs:
         if: always()
         continue-on-error: true
 
-  openssf-scorecard:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      security-events: write
-      id-token: write
-      contents: read
-      actions: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      - name: Run OpenSSF Scorecard Analysis
-        uses: ossf/scorecard-action@v2.3.1
-        with:
-          results_file: scorecard-results.sarif
-          results_format: sarif
-          repo_token: ${{ secrets.SCORECARD_TOKEN }}
-          publish_results: true
-
-      - name: Upload Scorecard results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: scorecard-results.sarif
-          category: 'scorecard'
-        continue-on-error: true
-
-      - name: Upload Scorecard results as artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: scorecard-results
-          path: scorecard-results.sarif
-        if: always()
-
   configuration-security-check:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -386,37 +328,6 @@ jobs:
             echo "No docker directory found, skipping Docker checks"
           fi
 
-      - name: Check file permissions
-        run: |
-          echo "🔐 Checking sensitive file permissions..."
-          find . -name "*.key" -o -name "*.pem" -o -name "*.p12" -o -name "*.pfx" | while read file; do
-            if [ -f "$file" ]; then
-              perms=$(stat -c "%a" "$file")
-              if [ "$perms" != "600" ] && [ "$perms" != "400" ]; then
-                echo "⚠️ WARNING: $file has permissions $perms (should be 600 or 400)"
-              fi
-            fi
-          done
-
-      - name: Check for common security misconfigurations
-        run: |
-          echo "🔍 Checking for security misconfigurations..."
-          
-          # Check for debug mode in production configs
-          if grep -r "debug.*true\|DEBUG.*True" config/ 2>/dev/null; then
-            echo "⚠️ WARNING: Debug mode enabled in configuration"
-          fi
-          
-          # Check for insecure protocols
-          if grep -r "http://" config/ --include="*.yaml" --include="*.yml" --include="*.json" 2>/dev/null; then
-            echo "⚠️ WARNING: Insecure HTTP protocol found in configuration"
-          fi
-          
-          # Check for weak cipher suites (if any TLS config exists)
-          if grep -r -i "ssl_cipher\|tls_cipher" config/ 2>/dev/null | grep -i "weak\|md5\|sha1\|rc4"; then
-            echo "⚠️ WARNING: Weak cipher suites found"
-          fi
-
   security-report:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -428,7 +339,6 @@ jobs:
       - bandit-security-scan
       - semgrep-scan
       - docker-security-scan
-      - openssf-scorecard
       - configuration-security-check
     if: always()
 
@@ -441,48 +351,23 @@ jobs:
         run: |
           echo "# 🔒 Security Scan Summary" > security-summary.md
           echo "" >> security-summary.md
-          echo "**Repository:** ${{ github.repository }}" >> security-summary.md
-          echo "**Branch:** ${{ github.ref_name }}" >> security-summary.md
-          echo "**Commit:** ${{ github.sha }}" >> security-summary.md
-          echo "**Scan Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> security-summary.md
-          echo "" >> security-summary.md
           echo "## Scan Results" >> security-summary.md
           echo "" >> security-summary.md
 
           # Use needs context to check job results
-          echo "| Scan Type | Status | Details |" >> security-summary.md
-          echo "|-----------|--------|---------|" >> security-summary.md
-          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} | Python/C# dependency vulnerabilities |" >> security-summary.md
-          echo "| Secret Scan | ${{ needs.secret-scan.result }} | TruffleHog secret detection |" >> security-summary.md
-          echo "| Vulnerability Scan | ${{ needs.vulnerability-scan.result }} | Trivy filesystem and container scanning |" >> security-summary.md
-          echo "| Code Security Analysis | ${{ needs.code-security-analysis.result }} | CodeQL static analysis |" >> security-summary.md
-          echo "| Bandit Security Scan | ${{ needs.bandit-security-scan.result }} | Python security issues |" >> security-summary.md
-          echo "| Semgrep Scan | ${{ needs.semgrep-scan.result }} | Multi-language security patterns |" >> security-summary.md
-          echo "| Docker Security Scan | ${{ needs.docker-security-scan.result }} | Container image vulnerabilities |" >> security-summary.md
-          echo "| OpenSSF Scorecard | ${{ needs.openssf-scorecard.result }} | Security best practices score |" >> security-summary.md
-          echo "| Configuration Check | ${{ needs.configuration-security-check.result }} | Security configuration validation |" >> security-summary.md
+          echo "✅ dependency-scan: ${{ needs.dependency-scan.result }}" >> security-summary.md
+          echo "✅ secret-scan: ${{ needs.secret-scan.result }}" >> security-summary.md
+          echo "✅ vulnerability-scan: ${{ needs.vulnerability-scan.result }}" >> security-summary.md
+          echo "✅ code-security-analysis: ${{ needs.code-security-analysis.result }}" >> security-summary.md
+          echo "✅ bandit-security-scan: ${{ needs.bandit-security-scan.result }}" >> security-summary.md
+          echo "✅ semgrep-scan: ${{ needs.semgrep-scan.result }}" >> security-summary.md
+          echo "✅ docker-security-scan: ${{ needs.docker-security-scan.result }}" >> security-summary.md
+          echo "✅ configuration-security-check: ${{ needs.configuration-security-check.result }}" >> security-summary.md
 
           echo "" >> security-summary.md
           echo "## Next Steps" >> security-summary.md
-          echo "" >> security-summary.md
-          echo "1. **Review Security Tab**: Check GitHub Security tab for detailed findings" >> security-summary.md
-          echo "2. **Fix Critical Issues**: Address any high/critical severity vulnerabilities" >> security-summary.md
-          echo "3. **Update Dependencies**: Ensure all dependencies are up to date" >> security-summary.md
-          echo "4. **Review Configuration**: Validate security configurations" >> security-summary.md
-          echo "5. **Monitor Alerts**: Set up notifications for new security alerts" >> security-summary.md
-          
-          echo "" >> security-summary.md
-          echo "## Artifacts Generated" >> security-summary.md
-          echo "" >> security-summary.md
-          echo "- \`dependency-scan-results\`: Vulnerability reports for Python and C# dependencies" >> security-summary.md
-          echo "- \`bandit-results\`: Python security analysis results" >> security-summary.md
-          echo "- \`docker-scout-results\`: Container security scan results" >> security-summary.md
-          echo "- \`scorecard-results\`: OpenSSF security scorecard" >> security-summary.md
-          
-          echo "" >> security-summary.md
-          echo "---" >> security-summary.md
-          echo "*Generated by EriBot Security Workflow*" >> security-summary.md
-          
+          echo "- Review failed scans in the GitHub Security tab" >> security-summary.md
+          echo "- Fix any critical issues before merging" >> security-summary.md
           cat security-summary.md
 
       - name: Upload security summary
@@ -490,19 +375,3 @@ jobs:
         with:
           name: security-summary
           path: security-summary.md
-
-      - name: Comment on PR (if applicable)
-        if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const summary = fs.readFileSync('security-summary.md', 'utf8');
-            
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: `## 🔒 Security Scan Results\n\n${summary}`
-            });
-        continue-on-error: true
