@@ -1,37 +1,50 @@
-# EriBot Quick Start Guide
+# EriBot Quick Start Guide 🚀
 
-## 🚀 Quick Installation
+Get EriBot up and running in less than 5 minutes! This guide will have you monitoring your system and receiving Slack alerts in no time.
 
-### Prerequisites
-- Python 3.10+ 
-- .NET 8.0+ SDK
-- Slack Bot Token
+## 📋 Prerequisites Checklist
 
-### 1. Get Slack Bot Token
-1. Go to https://api.slack.com/apps
-2. Create a new app for your workspace
-3. Go to OAuth & Permissions
-4. Add bot token scopes: `chat:write`, `chat:write.public`
-5. Install app to workspace
-6. Copy the "Bot User OAuth Token" (starts with `xoxb-`)
+Before you begin, ensure you have:
 
-### 2. Windows Installation
+- [ ] **Python 3.10+** installed ([Download](https://python.org))
+- [ ] **.NET 8.0+ SDK** installed ([Download](https://dotnet.microsoft.com/download))
+- [ ] **Slack workspace** with admin permissions
+- [ ] **5 minutes** of your time ⏰
 
-```powershell
-# Download and run as Administrator
-powershell -ExecutionPolicy Bypass -Command "& {Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/your-repo/eribot/main/install.ps1' -OutFile 'install.ps1'; .\install.ps1 -SlackToken 'xoxb-your-token-here' -InstallAsService}"
-```
+## 🔑 Step 1: Get Your Slack Bot Token
 
-### 3. Linux Installation
+### Create a Slack App
+1. Go to [https://api.slack.com/apps](https://api.slack.com/apps)
+2. Click **"Create New App"** → **"From scratch"**
+3. Name your app **"EriBot"** and select your workspace
+4. Click **"Create App"**
+
+### Configure Bot Permissions
+1. In the left sidebar, click **"OAuth & Permissions"**
+2. Scroll to **"Scopes"** → **"Bot Token Scopes"**
+3. Add these permissions:
+   - `chat:write` - Send messages
+   - `chat:write.public` - Send messages to public channels
+
+### Install to Workspace
+1. Scroll up to **"OAuth Tokens for Your Workspace"**
+2. Click **"Install to Workspace"**
+3. Click **"Allow"**
+4. **Copy the Bot User OAuth Token** (starts with `xoxb-`)
+
+> 💡 **Keep this token secure!** Never commit it to version control.
+
+## ⚡ Step 2: Choose Your Installation Method
+
+### 🐳 Option A: Docker (Recommended)
+
+**Fastest setup with zero dependencies to install:**
 
 ```bash
-# Download and run as root
-curl -fsSL https://raw.githubusercontent.com/your-repo/eribot/main/install.sh | sudo bash -s -- "xoxb-your-token-here" --service
-```
+# Clone the repository
+git clone https://github.com/Ericlein/eribot.git
+cd eribot
 
-### 4. Docker Installation
-
-```bash
 # Create environment file
 cat > .env << EOF
 SLACK_BOT_TOKEN=xoxb-your-token-here
@@ -44,221 +57,345 @@ EOF
 # Start services
 docker-compose up -d
 
-# View logs
+# Check status
+docker-compose ps
 docker-compose logs -f
 ```
 
-## ⚙️ Manual Installation
+### 🖥️ Option B: Native Installation
 
-### Clone and Setup
-```bash
-git clone https://github.com/your-repo/eribot.git
-cd eribot
+**For when you want full control:**
 
-# Copy your source files to the project structure:
-# python_monitor/monitor.py
-# python_monitor/config_loader.py
-# python_monitor/slack_client.py
-# python_monitor/remediation_client.py
-# csharp_remediator/Program.cs
-# config/config.yaml
+**Windows (PowerShell as Administrator):**
+```powershell
+# Download and run installer
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Ericlein/eribot/main/scripts/install.ps1" -OutFile "install.ps1"
+.\install.ps1 -SlackToken "xoxb-your-token-here" -InstallAsService
 ```
 
-### Python Setup
+**Linux/macOS:**
 ```bash
+# Download and run installer
+curl -fsSL https://raw.githubusercontent.com/Ericlein/eribot/main/scripts/install.sh | sudo bash -s -- "xoxb-your-token-here" --service
+```
+
+### 🛠️ Option C: Manual Setup
+
+**For developers who want to see what's happening:**
+
+```bash
+# 1. Clone repository
+git clone https://github.com/Ericlein/eribot.git
+cd eribot
+
+# 2. Set up Python environment
 cd python_monitor
 pip install -r requirements.txt
 
-# Create .env file
-echo "SLACK_BOT_TOKEN=xoxb-your-token-here" > .env
-echo "SLACK_CHANNEL=#devops-alerts" >> .env
+# 3. Build C# service
+cd ../csharp_remediator
+dotnet build --configuration Release
 
-# Test
-python monitor.py
+# 4. Configure environment
+cd ..
+cp .env.example .env
+# Edit .env with your token
+
+# 5. Start services (in separate terminals)
+# Terminal 1: Remediation service
+cd csharp_remediator && dotnet run
+
+# Terminal 2: Monitoring service
+cd python_monitor && python monitor.py
 ```
 
-### C# Setup
-```bash
-cd csharp_remediator
-dotnet build
-dotnet run
+## 🧪 Step 3: Test Your Installation
 
-# Test endpoint
+### Verify Services are Running
+
+**Docker:**
+```bash
+# Check container status
+docker-compose ps
+
+# Should show both services as "Up"
+```
+
+**Native/Manual:**
+```bash
+# Test remediation service
 curl http://localhost:5001/health
+# Should return: {"status":"healthy"}
+
+# Check logs
+tail -f logs/monitor.log
+tail -f logs/remediator.log
 ```
 
-## 🔧 Configuration
+### Test Slack Integration
 
-### Basic Configuration (`config/config.yaml`)
-```yaml
-monitoring:
-  cpu_threshold: 90      # CPU % to trigger alert
-  disk_threshold: 90     # Disk % to trigger alert  
-  check_interval: 60     # Check every 60 seconds
-
-slack:
-  channel: "#devops-alerts"
-
-remediator:
-  url: "http://localhost:5001/remediate"
-```
-
-### Environment Variables
+**Send a test message:**
 ```bash
-# Required
-SLACK_BOT_TOKEN=xoxb-your-bot-token
+# Docker
+docker-compose exec eribot-monitor python -c "
+from slack_client import send_slack_message
+print('Test result:', send_slack_message('🤖 EriBot test message!'))
+"
 
-# Optional overrides
-SLACK_CHANNEL=#your-channel
-CPU_THRESHOLD=90
-DISK_THRESHOLD=90
-CHECK_INTERVAL=30
-REMEDIATOR_URL=http://localhost:5001/remediate
-```
-
-## 🎯 Testing
-
-### Test Slack Connection
-```bash
-# Python test
+# Native
+cd python_monitor
 python -c "
-import os
-from slack_client import SlackClient
-from config_loader import SlackConfig
-
-config = SlackConfig(
-    channel='#devops-alerts',
-    token=os.getenv('SLACK_BOT_TOKEN')
-)
-client = SlackClient(config)
-client.send_message('🤖 EriBot test message!')
+from slack_client import send_slack_message
+print('Test result:', send_slack_message('🤖 EriBot test message!'))
 "
 ```
 
-### Test Remediation Service
-```bash
-# Test health endpoint
-curl http://localhost:5001/health
+You should see a message in your Slack channel! 🎉
 
-# Test remediation
-curl -X POST http://localhost:5001/remediate \
-  -H "Content-Type: application/json" \
-  -d '{"issueType": "high_cpu", "context": {"cpu_percent": 95}}'
+### Trigger a Test Alert
+
+**Simulate high CPU usage:**
+
+**Linux/macOS:**
+```bash
+# Start CPU load (in background)
+yes > /dev/null &
+CPU_PID=$!
+
+# Wait for alert (should trigger within 60 seconds)
+# Stop the load
+kill $CPU_PID
 ```
 
-### Simulate High Resource Usage
-```bash
-# Simulate high CPU (Linux/Mac)
-yes > /dev/null &  # Start background CPU load
-# Kill with: pkill yes
+**Windows:**
+```powershell
+# Start CPU intensive process
+Start-Job { while($true) { Get-Random } }
 
-# Simulate high disk (create large file)
-dd if=/dev/zero of=/tmp/bigfile bs=1M count=1000
-
-# Watch monitoring
-tail -f logs/monitor.log
+# Wait for alert, then stop
+Get-Job | Stop-Job
+Get-Job | Remove-Job
 ```
 
-## 🐳 Docker Commands
-
+**Docker (any platform):**
 ```bash
-# Start all services
-docker-compose up -d
-
-# Start with monitoring stack
-docker-compose --profile monitoring up -d
-
-# View logs
-docker-compose logs -f eribot-monitor
-docker-compose logs -f eribot-remediator
-
-# Stop services
-docker-compose down
-
-# Rebuild after code changes
-docker-compose up -d --build
+# Stress test the container
+docker-compose exec eribot-monitor python -c "
+import multiprocessing
+import time
+# This will spike CPU briefly
+[x*x for x in range(10000000)]
+"
 ```
 
-## 🔍 Troubleshooting
+## 📊 Step 4: Monitor Your System
+
+### Default Monitoring
+
+EriBot automatically monitors:
+- **CPU Usage** > 90%
+- **Memory Usage** > 90%  
+- **Disk Usage** > 90%
+- **Service Health** every 60 seconds
+
+### Customize Thresholds
+
+**Environment variables (recommended):**
+```bash
+export CPU_THRESHOLD=80        # Alert at 80% CPU
+export MEMORY_THRESHOLD=85     # Alert at 85% memory
+export CHECK_INTERVAL=30       # Check every 30 seconds
+```
+
+**Configuration file:**
+```yaml
+# config/config.yaml
+monitoring:
+  cpu_threshold: 80
+  memory_threshold: 85
+  disk_threshold: 80
+  check_interval: 30
+```
+
+### View Real-time Status
+
+**Check system health:**
+```bash
+# Get current system status
+curl http://localhost:5001/api/health/detailed
+
+# Get available remediation actions
+curl http://localhost:5001/api/remediation/actions
+```
+
+## 🛡️ Step 5: Understanding Alerts
+
+### Alert Types and What They Mean
+
+| Alert | Cause | Action Taken |
+|-------|-------|--------------|
+| 🟡 **High CPU** | CPU > threshold | Process cleanup, temp file removal |
+| 🟡 **High Memory** | Memory > threshold | Garbage collection, cache clearing |
+| 🟡 **High Disk** | Disk > threshold | Temp cleanup, log rotation |
+| 🔴 **Service Down** | Health check fails | Service restart (simulated) |
+| 🟢 **Remediation Success** | Action completed | Confirmation message |
+| ❌ **Remediation Failed** | Action failed | Error details and next steps |
+
+### Sample Slack Messages
+
+```
+🟡 WARNING: High CPU usage detected: 92.5%
+🛠️ Remediation triggered for high_cpu
+✅ High CPU remediation completed: cleaned 47 temp files (125 MB)
+```
+
+## 🔧 Step 6: Advanced Configuration
+
+### Multiple Channels
+
+Route different alerts to different channels:
+
+```bash
+# Environment approach
+export SLACK_CHANNEL_ALERTS="#critical-alerts"
+export SLACK_CHANNEL_INFO="#system-info"
+
+# Or use webhooks for multiple channels
+export SLACK_WEBHOOK_CRITICAL="https://hooks.slack.com/services/..."
+export SLACK_WEBHOOK_INFO="https://hooks.slack.com/services/..."
+```
+
+### Custom Remediation Actions
+
+Add your own remediation scripts:
+
+```bash
+# Add to csharp_remediator/Services/RemediationService.cs
+case "custom_cleanup":
+    return await CustomCleanupAsync(request);
+```
+
+### Production Settings
+
+For production environments:
+
+```yaml
+# config/config.yaml
+monitoring:
+  cpu_threshold: 90
+  memory_threshold: 90
+  check_interval: 30        # More frequent checks
+
+logging:
+  level: "WARNING"          # Less verbose logging
+  max_file_size: "50MB"     # Larger log files
+
+remediator:
+  timeout: 60              # Longer timeouts
+  retry_attempts: 5        # More retries
+```
+
+## 🚨 Troubleshooting
 
 ### Common Issues
 
-**1. Slack messages not sending**
-- Check bot token is correct
-- Verify bot has permission to post in channel
-- Check channel name includes `#`
-
-**2. High CPU/Disk not triggering**
-- Lower thresholds for testing
-- Check system actually exceeds thresholds
-- Verify remediation service is reachable
-
-**3. Service won't start**
-- Check logs in `logs/` directory
-- Verify Python/C# are installed correctly
-- Check firewall blocking port 5001
-
-**4. Permission errors (Linux)**
-- Ensure service user has correct permissions
-- Check SELinux/AppArmor policies
-- Run with `sudo` for testing
-
-### Log Locations
-- **Windows Service**: `C:\EriBot\logs\`
-- **Linux Service**: `/opt/eribot/logs/`
-- **Docker**: `docker-compose logs`
-- **Manual**: `./logs/`
-
-### Useful Commands
+**"Slack messages not sending"**
 ```bash
-# Check service status (Linux)
-systemctl status eribot-monitor
-systemctl status eribot-remediator
+# Check token format
+echo $SLACK_BOT_TOKEN | head -c 20
+# Should start with "xoxb-"
 
-# Windows services
-Get-Service EriBot-Monitor
-Get-Service EriBot-Remediator
-
-# Manual process check
-ps aux | grep -E "(monitor\.py|EriBot\.Remediator)"
-
-# Test network connectivity
-telnet localhost 5001
+# Check bot permissions
+curl -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+     https://slack.com/api/auth.test
 ```
 
-## 📊 Monitoring
+**"Remediation service not responding"**
+```bash
+# Check if port is in use
+netstat -an | grep 5001
 
-### Default Alerts
-- **High CPU**: >85% for 1+ minutes
-- **High Disk**: >90% usage
-- **Service Failures**: Remediation errors
-- **System Events**: Startup/shutdown
+# Check logs
+tail -f logs/remediator.log
 
-### Remediation Actions
-- **High CPU**: Process termination simulation, temp cleanup
-- **High Disk**: Temp file cleanup, log rotation
-- **High Memory**: Garbage collection, cache clearing
+# Restart service
+docker-compose restart eribot-remediator
+# OR
+sudo systemctl restart eribot-remediator
+```
 
-### Extending EriBot
-- Add new remediation actions in `RemediationService.cs`
-- Create custom monitoring checks in `SystemMonitor`
-- Add new alert types in `SlackClient`
+**"High resource usage not triggering alerts"**
+```bash
+# Lower threshold temporarily for testing
+export CPU_THRESHOLD=50
+export MEMORY_THRESHOLD=50
 
-## 🔒 Security Notes
+# Check current usage
+python -c "import psutil; print(f'CPU: {psutil.cpu_percent()}%, Memory: {psutil.virtual_memory().percent}%')"
+```
 
-- **Bot Token**: Keep secure, rotate regularly
-- **Service Account**: Run with minimal privileges
-- **Network**: Consider firewall rules for port 5001
-- **Logs**: May contain sensitive system information
-- **Remediation**: Currently simulated for safety
+### Getting Help
 
-## 🆘 Support
+**Check system status:**
+```bash
+# Docker
+docker-compose logs --tail=50 eribot-monitor
+docker-compose logs --tail=50 eribot-remediator
 
-If you encounter issues:
-1. Check logs for error messages
-2. Verify configuration files
-3. Test individual components
-4. Check network connectivity
-5. Review Slack permissions
+# Native
+tail -f logs/monitor.log
+tail -f logs/remediator.log
+```
 
-For additional help, check the project documentation or create an issue.
+**Validate configuration:**
+```bash
+cd python_monitor
+python -c "
+from config_loader import ConfigLoader
+loader = ConfigLoader()
+config = loader.load()
+print('Config loaded successfully:', loader.validate())
+"
+```
+
+## 🎯 Next Steps
+
+Now that EriBot is running:
+
+1. **📱 Set up additional Slack channels** for different alert types
+2. **⚙️ Customize thresholds** based on your system requirements  
+3. **📊 Add monitoring dashboards** using the optional Grafana setup
+4. **🔒 Review security settings** for production deployment
+5. **📖 Read the full documentation** for advanced features
+
+### Optional Enhancements
+
+**Add monitoring dashboard:**
+```bash
+# Start with monitoring stack
+docker-compose --profile monitoring up -d
+
+# Access Grafana at http://localhost:3000
+# Default login: admin/admin
+```
+
+**Set up log aggregation:**
+```bash
+# Start with logging stack
+docker-compose --profile logging up -d
+```
+
+## 🎉 Congratulations!
+
+You now have a fully functional system monitoring and auto-remediation bot! EriBot will:
+
+- ✅ Monitor your system 24/7
+- ✅ Send intelligent Slack alerts
+- ✅ Automatically fix common issues
+- ✅ Keep detailed logs of all activities
+
+**Pro tip:** Join the `#devops-alerts` channel and watch EriBot in action. You'll be amazed at how much peace of mind automated monitoring can provide!
+
+---
+
+**Need help?** Check out the [full README](README.md) or [open an issue](https://github.com/Ericlein/eribot/issues).
