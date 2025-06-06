@@ -120,7 +120,8 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
-        continue-on-error: true  # Add this to handle permission issues
+          category: 'trivy-filesystem'
+        continue-on-error: true
 
       - name: Build and scan Docker images with Trivy
         run: |
@@ -147,6 +148,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-docker-monitor.sarif'
+          category: 'trivy-docker-monitor'
         continue-on-error: true
 
       - name: Upload Docker scan results (Remediator)
@@ -154,6 +156,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-docker-remediator.sarif'
+          category: 'trivy-docker-remediator'
         continue-on-error: true
 
   code-security-analysis:
@@ -186,7 +189,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:python,csharp"
+          category: "codeql:python,csharp"
         continue-on-error: true
 
   bandit-security-scan:
@@ -248,6 +251,7 @@ jobs:
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
+          category: 'semgrep'
         if: always()
         continue-on-error: true
 
