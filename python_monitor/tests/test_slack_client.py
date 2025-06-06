@@ -28,6 +28,8 @@ class TestSlackClientUnit:
         with patch.object(slack_client, 'client', mock_client_instance, create=True):
             result = send_slack_message("Test message")
             
+            # Your function should return True on success
+            assert result is True
             mock_client_instance.chat_postMessage.assert_called_once()
             call_args = mock_client_instance.chat_postMessage.call_args
             assert "Test message" in str(call_args)
@@ -44,12 +46,59 @@ class TestSlackClientUnit:
         with patch.object(slack_client, 'client', mock_client_instance, create=True):
             result = send_slack_message("Test message")
             
-            # Should handle the error gracefully
-            assert mock_print.called or result is False
+            # Should return False on error
+            assert result is False
+
+    @pytest.mark.unit
+    @patch('slack_client.WebClient')
+    def test_send_slack_message_empty_message(self, mock_webclient_class):
+        """Test sending empty message with mocks"""
+        mock_client_instance = MagicMock()
+        mock_client_instance.chat_postMessage.return_value = {"ok": True}
+        mock_webclient_class.return_value = mock_client_instance
+        
+        with patch.object(slack_client, 'client', mock_client_instance, create=True):
+            result = send_slack_message("")
+            
+            # Should return False for empty message
+            assert result is False
+
+    @pytest.mark.unit
+    @patch('slack_client.WebClient')
+    def test_send_slack_message_with_channel_mocked(self, mock_webclient_class):
+        """Test sending message with specific channel using mocks"""
+        mock_client_instance = MagicMock()
+        mock_client_instance.chat_postMessage.return_value = {"ok": True}
+        mock_webclient_class.return_value = mock_client_instance
+        
+        with patch.object(slack_client, 'client', mock_client_instance, create=True):
+            try:
+                result = send_slack_message("Test message", channel="#test")
+                mock_client_instance.chat_postMessage.assert_called_once()
+                call_args = mock_client_instance.chat_postMessage.call_args
+                assert "#test" in str(call_args)
+            except TypeError:
+                # Function doesn't support channel parameter - that's fine
+                result = send_slack_message("Test message")
+                mock_client_instance.chat_postMessage.assert_called_once()
 
 
 class TestSlackClientIntegration:
-    """Integration tests with real Slack API - requires SLACK_BOT_TOKEN"""
+    """Integration tests with real Slack API - requires SLACK_BOT_TOKEN and --run-integration flag"""
+    
+    @pytest.fixture(autouse=True)
+    def check_integration_flag(self, request):
+        """Check if integration tests should run"""
+        # Skip integration tests unless explicitly requested
+        if not request.config.getoption("--run-integration", default=False):
+            pytest.skip("Integration tests skipped - use --run-integration to run them")
+    
+    @pytest.fixture(autouse=True) 
+    def check_ci_environment(self):
+        """Skip integration tests in CI environment"""
+        # Additional safety: skip if running in CI
+        if os.environ.get('CI') or os.environ.get('GITHUB_ACTIONS'):
+            pytest.skip("Integration tests skipped in CI environment")
     
     @pytest.fixture(autouse=True)
     def check_slack_setup(self):
@@ -85,8 +134,8 @@ class TestSlackClientIntegration:
         # Send the message
         result = send_slack_message(test_message)
         
-        # Check that it was sent successfully
-        assert result is not False  # Depending on your implementation, might return True or None
+        # Your function returns True on success, False on failure
+        assert result is True, f"Message sending failed, got result: {result}"
         
         print(f"✅ Successfully sent test message to Slack: {test_message}")
     
@@ -99,12 +148,12 @@ class TestSlackClientIntegration:
         try:
             # Try to send with channel parameter
             result = send_slack_message(test_message, channel=test_channel)
-            assert result is not False
+            assert result is True, f"Message sending failed, got result: {result}"
             print(f"✅ Successfully sent test message to {test_channel}: {test_message}")
         except TypeError:
             # If function doesn't support channel parameter, send normally
             result = send_slack_message(test_message)
-            assert result is not False
+            assert result is True, f"Message sending failed, got result: {result}"
             print(f"✅ Successfully sent test message (no channel param): {test_message}")
     
     @pytest.mark.integration
@@ -112,9 +161,9 @@ class TestSlackClientIntegration:
         """Test sending empty message to real Slack"""
         result = send_slack_message("")
         
-        # Should handle empty message gracefully (either return False or skip sending)
-        # This depends on your implementation
-        print(f"Empty message handling result: {result}")
+        # Should return False for empty message
+        assert result is False, f"Expected False for empty message, got: {result}"
+        print(f"✅ Empty message correctly returned False: {result}")
     
     @pytest.mark.integration
     def test_get_bot_info_real(self):
@@ -153,9 +202,11 @@ class TestSlackClientIntegration:
             result = send_slack_message(msg)
             results.append(result)
         
+        # Count successful sends (should be True)
+        successful_sends = [r for r in results if r is True]
+        
         # At least some should succeed (depending on rate limits)
-        successful_sends = [r for r in results if r is not False]
-        assert len(successful_sends) > 0, "All messages failed - possible rate limiting issue"
+        assert len(successful_sends) > 0, f"All messages failed - got results: {results}"
         
         print(f"✅ Sent {len(successful_sends)}/{len(messages)} messages successfully")
 
@@ -182,26 +233,38 @@ class TestSlackClientConfiguration:
         else:
             print("ℹ️  SLACK_CHANNEL not configured, will use default")
     
-    @pytest.mark.integration
     def test_slack_client_initialization(self):
-        """Test that Slack client initializes properly"""
+        """Test that Slack client initializes properly (unit test version)"""
+        # This should test initialization without requiring real credentials
         assert hasattr(slack_client, 'client'), "slack_client should have 'client' attribute"
         
+        # If client exists, check it has expected methods
         if slack_client.client:
             assert hasattr(slack_client.client, 'chat_postMessage'), "Client should have chat_postMessage method"
-            print("✅ Slack client initialized successfully")
-        else:
-            pytest.fail("Slack client not initialized - check SLACK_BOT_TOKEN")
+            print("✅ Slack client has expected methods")
 
 
 # Pytest configuration to run integration tests conditionally
 def pytest_configure(config):
-    """Configure pytest markers"""
+    """Configure pytest markers and options"""
     config.addinivalue_line("markers", "unit: fast unit tests with mocking")
     config.addinivalue_line("markers", "integration: integration tests with real APIs")
     config.addinivalue_line("markers", "slow: slow tests that may take time")
 
 
-# Helper to run only unit tests: pytest -m "unit"
-# Helper to run only integration tests: pytest -m "integration"  
-# Helper to run all tests: pytest (default)
+def pytest_addoption(parser):
+    """Add custom command line options"""
+    parser.addoption(
+        "--run-integration",
+        action="store_true",
+        default=False,
+        help="Run integration tests (requires real API credentials)"
+    )
+
+
+# Usage examples:
+# Run only unit tests (default in CI): pytest -m "unit"
+# Run only unit tests explicitly: pytest -m "unit" 
+# Run integration tests locally: pytest --run-integration -m "integration"
+# Run all tests locally: pytest --run-integration
+# Run without integration tests: pytest -m "not integration"
