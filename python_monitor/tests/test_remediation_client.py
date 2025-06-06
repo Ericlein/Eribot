@@ -642,6 +642,7 @@ class TestRemediationClientUnit:
             session = clients.remediation.create_session(
                 remediation_config
             )  # or whatever your method is
+            print(f"I'm done with flake {session}")
 
             # Now the Retry class should be called when create_session runs
             mock_retry_class.assert_called_once_with(

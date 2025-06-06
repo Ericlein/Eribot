@@ -2,6 +2,7 @@
 Health checking module for EriBot Python monitoring service
 """
 
+import logging
 import time
 import psutil
 import requests
@@ -122,7 +123,8 @@ class SystemHealthChecker:
                 if hasattr(os, "getloadavg"):
                     load_avg = os.getloadavg()
             except Exception as e:
-                pass
+                logging.warning(f"Failed to get load average: {e}")
+
 
             # Determine health status
             healthy = cpu_percent < 90  # Consider unhealthy if > 90%
