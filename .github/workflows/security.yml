@@ -12,7 +12,7 @@ on:
 permissions:
   contents: read
   security-events: write
-  actions: read  # Required for private repos
+  actions: read
 
 jobs:
   dependency-scan:
@@ -187,7 +187,7 @@ jobs:
         uses: github/codeql-action/analyze@v3
         with:
           category: "/language:python,csharp"
-        continue-on-error: true  # Add this to handle permission issues
+        continue-on-error: true
 
   bandit-security-scan:
     runs-on: ubuntu-latest
