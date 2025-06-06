@@ -5,8 +5,13 @@ python_monitor/tests/test_validators.py
 
 import pytest
 from python_monitor.utils.validators import (
-    validate_slack_token, validate_slack_channel, validate_threshold,
-    validate_url, validate_hostname, validate_config_section, validate_complete_config
+    validate_slack_token,
+    validate_slack_channel,
+    validate_threshold,
+    validate_url,
+    validate_hostname,
+    validate_config_section,
+    validate_complete_config,
 )
 from python_monitor.utils.exceptions import ValidationError
 
@@ -14,13 +19,13 @@ from python_monitor.utils.exceptions import ValidationError
 @pytest.mark.unit
 class TestValidators:
     """Unit tests for all validator functions"""
-    
+
     # Slack Token Tests
     def test_validate_slack_token_valid(self):
         """Test valid Slack token validation"""
         valid_tokens = [
             "xoxb-123456789-123456789-abcdefghijklmnopqrstuvwx",
-            "xoxb-test-token-123456789-123456789-abcdefghijklmnopqrstuvwx"
+            "xoxb-test-token-123456789-123456789-abcdefghijklmnopqrstuvwx",
         ]
         for token in valid_tokens:
             assert validate_slack_token(token) is True
@@ -58,9 +63,7 @@ class TestValidators:
     # Slack Channel Tests
     def test_validate_slack_channel_valid(self):
         """Test valid Slack channel validation"""
-        valid_channels = [
-            "#general", "#dev-alerts", "#test_channel", "#TestChannel"
-        ]
+        valid_channels = ["#general", "#dev-alerts", "#test_channel", "#TestChannel"]
         for channel in valid_channels:
             assert validate_slack_channel(channel) is True
 
@@ -128,7 +131,7 @@ class TestValidators:
         valid_urls = [
             "http://localhost:5001",
             "https://api.slack.com",
-            "http://192.168.1.1:8080/health"
+            "http://192.168.1.1:8080/health",
         ]
         for url in valid_urls:
             assert validate_url(url) is True
@@ -156,9 +159,7 @@ class TestValidators:
     # Hostname Tests
     def test_validate_hostname_valid(self):
         """Test valid hostname validation"""
-        valid_hostnames = [
-            "localhost", "example.com", "server-01", "192.168.1.1"
-        ]
+        valid_hostnames = ["localhost", "example.com", "server-01", "192.168.1.1"]
         for hostname in valid_hostnames:
             assert validate_hostname(hostname) is True
 
@@ -213,13 +214,14 @@ class TestValidators:
         """Test valid config section validation"""
         config = {
             "channel": "#test-alerts",
-            "token": "xoxb-123456789-123456789-abcdefghijklmnopqrstuvwx"
+            "token": "xoxb-123456789-123456789-abcdefghijklmnopqrstuvwx",
         }
-        assert validate_config_section(
-            config, "slack", 
-            required_fields=["channel"],
-            optional_fields=["token"]
-        ) is True
+        assert (
+            validate_config_section(
+                config, "slack", required_fields=["channel"], optional_fields=["token"]
+            )
+            is True
+        )
 
     def test_validate_config_section_not_dict(self):
         """Test non-dict config section raises ValidationError"""
@@ -230,22 +232,14 @@ class TestValidators:
         """Test missing required field raises ValidationError"""
         config = {"optional": "value"}
         with pytest.raises(ValidationError, match="Missing required field"):
-            validate_config_section(
-                config, "test", 
-                required_fields=["required_field"]
-            )
+            validate_config_section(config, "test", required_fields=["required_field"])
 
     def test_validate_config_section_invalid_slack_token(self):
         """Test invalid Slack token in config section raises ValidationError"""
-        config = {
-            "channel": "#test",
-            "token": "invalid-token"
-        }
+        config = {"channel": "#test", "token": "invalid-token"}
         with pytest.raises(ValidationError, match="Invalid Slack token format"):
             validate_config_section(
-                config, "slack",
-                required_fields=["channel"],
-                optional_fields=["token"]
+                config, "slack", required_fields=["channel"], optional_fields=["token"]
             )
 
     def test_validate_config_section_invalid_threshold(self):
@@ -254,12 +248,18 @@ class TestValidators:
             "cpu_threshold": 150,
             "memory_threshold": 85,
             "disk_threshold": 90,
-            "check_interval": 60
+            "check_interval": 60,
         }
         with pytest.raises(ValidationError, match="Threshold must be between"):
             validate_config_section(
-                config, "monitoring",
-                required_fields=["cpu_threshold", "memory_threshold", "disk_threshold", "check_interval"]
+                config,
+                "monitoring",
+                required_fields=[
+                    "cpu_threshold",
+                    "memory_threshold",
+                    "disk_threshold",
+                    "check_interval",
+                ],
             )
 
     def test_validate_config_section_invalid_check_interval(self):
@@ -268,12 +268,18 @@ class TestValidators:
             "cpu_threshold": 90,
             "memory_threshold": 85,
             "disk_threshold": 90,
-            "check_interval": -10
+            "check_interval": -10,
         }
         with pytest.raises(ValidationError, match="Check interval must be a positive number"):
             validate_config_section(
-                config, "monitoring",
-                required_fields=["cpu_threshold", "memory_threshold", "disk_threshold", "check_interval"]
+                config,
+                "monitoring",
+                required_fields=[
+                    "cpu_threshold",
+                    "memory_threshold",
+                    "disk_threshold",
+                    "check_interval",
+                ],
             )
 
     # Complete Config Tests
@@ -284,14 +290,10 @@ class TestValidators:
                 "cpu_threshold": 90,
                 "memory_threshold": 85,
                 "disk_threshold": 90,
-                "check_interval": 60
+                "check_interval": 60,
             },
-            "slack": {
-                "channel": "#test-alerts"
-            },
-            "remediator": {
-                "url": "http://localhost:5001"
-            }
+            "slack": {"channel": "#test-alerts"},
+            "remediator": {"url": "http://localhost:5001"},
         }
         assert validate_complete_config(config) is True
 
@@ -307,7 +309,7 @@ class TestValidators:
                 "cpu_threshold": 150,  # Invalid
                 "memory_threshold": 85,
                 "disk_threshold": 90,
-                "check_interval": 60
+                "check_interval": 60,
             }
         }
         with pytest.raises(ValidationError, match="Threshold must be between"):

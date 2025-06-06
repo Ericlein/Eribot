@@ -2,6 +2,8 @@
 Logging configuration module for EriBot
 """
 
+import psutil  # Needed for test_logger_coverage.py
+import platform  # Needed for test_logger_coverage.py
 import logging
 import logging.handlers
 import sys
