@@ -25,9 +25,7 @@ def validate_slack_token(token):
 
     # Bot tokens should start with xoxb-
     if not token.startswith("xoxb-"):
-        raise ValidationError(
-            "Invalid Slack token format. Bot tokens must start with 'xoxb-'"
-        )
+        raise ValidationError("Invalid Slack token format. Bot tokens must start with 'xoxb-'")
 
     # Basic format validation for xoxb tokens
     # Format is typically: xoxb-{team_id}-{bot_id}-{secret}
@@ -42,9 +40,7 @@ def validate_slack_token(token):
         int(parts[1])  # team_id should be numeric
         int(parts[2])  # bot_id should be numeric
     except (ValueError, IndexError):
-        raise ValidationError(
-            "Invalid Slack token format. Team ID and Bot ID must be numeric"
-        )
+        raise ValidationError("Invalid Slack token format. Team ID and Bot ID must be numeric")
 
     # Check that the secret part exists and has reasonable length
     if len(parts) < 4 or len(parts[3]) < 20:

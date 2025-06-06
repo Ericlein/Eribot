@@ -136,9 +136,7 @@ class TestBasicValidators:
 
         for hostname in valid_hostnames:
             result = validate_hostname(hostname)
-            assert (
-                result is True
-            ), f"Expected True for hostname '{hostname}', got {result}"
+            assert result is True, f"Expected True for hostname '{hostname}', got {result}"
 
     def test_validate_hostname_invalid(self):
         """Test invalid hostname validation"""
@@ -205,10 +203,7 @@ def validator():
                 if "url" in config:
                     validate_url(config["url"])
                 if "timeout" in config:
-                    if (
-                        not isinstance(config["timeout"], (int, float))
-                        or config["timeout"] <= 0
-                    ):
+                    if not isinstance(config["timeout"], (int, float)) or config["timeout"] <= 0:
                         raise ValidationError("Timeout must be positive")
                 return True
             except ValidationError as e:

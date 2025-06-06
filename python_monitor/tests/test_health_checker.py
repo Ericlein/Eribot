@@ -57,12 +57,8 @@ class TestSystemHealthChecker:
         """Test system health check when all components are healthy"""
         # Mock healthy system metrics
         mock_cpu.return_value = 45.5
-        mock_memory.return_value = Mock(
-            percent=60.0, available=8000000000, total=16000000000
-        )
-        mock_disk.return_value = Mock(
-            percent=70.0, free=300000000000, total=1000000000000
-        )
+        mock_memory.return_value = Mock(percent=60.0, available=8000000000, total=16000000000)
+        mock_disk.return_value = Mock(percent=70.0, free=300000000000, total=1000000000000)
 
         with patch("socket.socket") as mock_socket:
             mock_socket_instance = Mock()

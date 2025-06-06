@@ -23,9 +23,7 @@ class TestIntegration:
     @pytest.mark.integration
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_end_to_end_monitoring(
-        self, mock_remediation_client, mock_slack_client, app_config
-    ):
+    def test_end_to_end_monitoring(self, mock_remediation_client, mock_slack_client, app_config):
         """Test complete monitoring flow"""
         from core.monitor import SystemMonitor
 
@@ -94,9 +92,7 @@ class TestIntegration:
     @pytest.mark.slow
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_monitoring_loop(
-        self, mock_remediation_client, mock_slack_client, app_config
-    ):
+    def test_monitoring_loop(self, mock_remediation_client, mock_slack_client, app_config):
         """Test monitoring loop for a short duration"""
         from core.monitor import SystemMonitor
 
@@ -157,9 +153,7 @@ class TestIntegration:
     @pytest.mark.integration
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_config_integration(
-        self, mock_remediation_client, mock_slack_client, app_config
-    ):
+    def test_config_integration(self, mock_remediation_client, mock_slack_client, app_config):
         """Test that configuration integrates properly with monitor"""
         from core.monitor import SystemMonitor
 
@@ -174,10 +168,7 @@ class TestIntegration:
         monitor = SystemMonitor(app_config)
 
         # Verify config is accessible
-        assert (
-            monitor.config.monitoring.cpu_threshold
-            == app_config.monitoring.cpu_threshold
-        )
+        assert monitor.config.monitoring.cpu_threshold == app_config.monitoring.cpu_threshold
         assert monitor.config.slack.channel == app_config.slack.channel
         assert monitor.config.remediator.url == app_config.remediator.url
 

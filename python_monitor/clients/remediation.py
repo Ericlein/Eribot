@@ -69,9 +69,7 @@ class RemediationClient:
                 self.logger.info(" Remediation service is available")
                 return True
             else:
-                self.logger.warning(
-                    f"Remediation service returned status: {response.status_code}"
-                )
+                self.logger.warning(f"Remediation service returned status: {response.status_code}")
                 return False
         except requests.exceptions.RequestException as e:
             self.logger.warning(f"Remediation service not available: {e}")
@@ -148,9 +146,7 @@ class RemediationClient:
             elif status_code == 404:
                 raise RemediationError(f"Unknown issue type: {issue_type}")
             elif status_code == 503:
-                raise ServiceUnavailableError(
-                    "Remediation service temporarily unavailable"
-                )
+                raise ServiceUnavailableError("Remediation service temporarily unavailable")
             else:
                 raise RemediationError(f"HTTP error {status_code}: {e}")
 

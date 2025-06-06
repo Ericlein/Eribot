@@ -99,9 +99,7 @@ class SlackClient:
             )
 
             if response.get("ok"):
-                self.logger.debug(
-                    f"Message sent to {target_channel}: {message[:50]}..."
-                )
+                self.logger.debug(f"Message sent to {target_channel}: {message[:50]}...")
                 return True
             else:
                 error_msg = f"Failed to send message: {response}"

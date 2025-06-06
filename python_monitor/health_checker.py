@@ -79,9 +79,7 @@ class SystemHealthChecker:
 
             details.update(
                 {
-                    "uptime_seconds": (
-                        datetime.now() - self.start_time
-                    ).total_seconds(),
+                    "uptime_seconds": (datetime.now() - self.start_time).total_seconds(),
                     "check_count": self.check_count,
                     "hostname": psutil.cpu_count(),
                     "platform": psutil.cpu_count(),  # This will be fixed in actual implementation
@@ -226,16 +224,12 @@ class SystemHealthChecker:
             if successful_connections == len(test_hosts):
                 status = "all connections successful"
             elif successful_connections > 0:
-                status = (
-                    f"{successful_connections}/{len(test_hosts)} connections successful"
-                )
+                status = f"{successful_connections}/{len(test_hosts)} connections successful"
             else:
                 status = "no external connectivity"
 
             avg_latency = (
-                sum(connection_times) / len(connection_times)
-                if connection_times
-                else None
+                sum(connection_times) / len(connection_times) if connection_times else None
             )
 
             return {
@@ -420,9 +414,7 @@ class ServiceHealthChecker:
 class CompositeHealthChecker:
     """Composite health checker that combines system and service checks"""
 
-    def __init__(
-        self, remediator_url: str = "http://localhost:5001", slack_token: str = ""
-    ):
+    def __init__(self, remediator_url: str = "http://localhost:5001", slack_token: str = ""):
         self.system_checker = SystemHealthChecker()
         self.service_checker = ServiceHealthChecker(remediator_url)
         self.slack_token = slack_token
@@ -445,9 +437,7 @@ class CompositeHealthChecker:
 
         # Slack connectivity (if token provided)
         if self.slack_token:
-            results["slack"] = self.service_checker.check_slack_connectivity(
-                self.slack_token
-            )
+            results["slack"] = self.service_checker.check_slack_connectivity(self.slack_token)
 
         return results
 
