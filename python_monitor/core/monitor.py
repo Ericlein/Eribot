@@ -156,8 +156,8 @@ class SystemMonitor:
                 self.slack_client.send_error_message(
                     f'System check failed: {str(e)}'
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                self.logger.warning(f'Failed to send error notification: {e}')
     
     def check_system(self) -> SystemMetrics:
         start_time = time.time()

@@ -4,16 +4,15 @@ Fixed for new structure
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
 import requests
 from datetime import datetime
 
 # Import from new structure
 from core.health import (
-    HealthStatus, 
-    SystemHealthChecker, 
-    ServiceHealthChecker, 
-    CompositeHealthChecker
+    HealthStatus,
+    SystemHealthChecker,
+    ServiceHealthChecker,
 )
 
 class TestHealthStatus:

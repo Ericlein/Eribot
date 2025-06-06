@@ -8,7 +8,6 @@ Replaces the global execution in the old monitor.py.
 
 import sys
 import signal
-import time
 from pathlib import Path
 from typing import Optional
 

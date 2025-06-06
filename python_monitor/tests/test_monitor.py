@@ -4,9 +4,7 @@ Fixed for new structure with proper mocking
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, Mock
-import sys
-import os
+from unittest.mock import patch, Mock
 
 class TestMonitor:
     """Test cases for the monitoring module"""
