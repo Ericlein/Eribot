@@ -1,23 +1,35 @@
+# EriBot Python Monitor Dependencies
+# Production dependencies
+
+# Install with: pip install -r requirements.txt
+
 # Core dependencies
-slack-sdk==3.20.0
-requests==2.32.2
-psutil==5.9.8
-python-dotenv==1.0.0
-pyyaml==6.0.1
-schedule==1.2.0
+slack-sdk==3.20.0          # Slack API integration
+requests==2.32.2           # HTTP client for remediation service
+psutil==5.9.8              # System monitoring and metrics
+python-dotenv==1.0.0       # Environment variable loading
+pyyaml==6.0.1              # YAML configuration file parsing
+schedule==1.2.0            # Task scheduling for monitoring loops
 
-# Testing dependencies
-pytest==8.0.0
-pytest-cov==4.1.0
-pytest-mock==3.12.0
-pytest-asyncio==0.21.2
+# Testing framework
+pytest==8.0.0             # Testing framework
+pytest-cov==4.1.0         # Coverage reporting
+pytest-mock==3.12.0       # Mocking utilities for tests
+pytest-asyncio==0.21.2    # Async testing support
 
-# Code quality tools
-flake8==7.0.0
-black==24.3.0
-mypy==1.8.0
-types-requests==2.31.0
-types-PyYAML==6.0.12
+# Code quality and formatting
+flake8==7.0.0             # Linting
+black==24.3.0             # Code formatting
+mypy==1.8.0               # Type checking
+
+# Type stubs for better type checking
+types-requests==2.31.0    # Type stubs for requests
+types-PyYAML==6.0.12      # Type stubs for PyYAML
 
 # Development tools
-pre-commit==3.6.0
+pre-commit==3.6.0         # Git hooks for code quality
+
+# Optional security scanning
+# Install separately with: pip install bandit safety
+# bandit==1.7.5           # Security linting
+# safety==2.3.4           # Dependency vulnerability scanning

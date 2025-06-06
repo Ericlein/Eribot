@@ -11,7 +11,7 @@
 
 ### 🔍 **Intelligent Monitoring**
 - **System Metrics**: CPU, memory, disk usage monitoring with configurable thresholds
-- **Health Checks**: Comprehensive service and dependency health monitoring
+- **Health Checks**: Comprehensive service and dependency health monitoring  
 - **Real-time Alerts**: Instant Slack notifications when issues are detected
 - **Cross-platform**: Works on Windows, Linux, and macOS
 
@@ -95,9 +95,9 @@ docker-compose up -d
    cd csharp_remediator
    dotnet run
 
-   # Terminal 2: Start monitoring service
+   # Terminal 2: Start monitoring service  
    cd python_monitor
-   python monitor.py
+   python main.py
    ```
 
 ## 📋 Configuration
@@ -166,7 +166,11 @@ logging:
 
 ### Key Components
 
-- **Python Monitor** (`python_monitor/`): Lightweight system monitoring with Slack integration
+- **Python Monitor** (`python_monitor/`): Modular monitoring system with Slack integration
+  - `config/`: Configuration loading and validation
+  - `clients/`: Slack and remediation service clients
+  - `core/`: System monitoring and health checking
+  - `utils/`: Logging, validation, and exception handling
 - **C# Remediator** (`csharp_remediator/`): High-performance remediation service with REST API
 - **Configuration** (`config/`): Centralized YAML and environment-based configuration
 - **Docker Support** (`docker/`): Multi-architecture container support with health checks
@@ -237,6 +241,77 @@ docker run -d --name eribot-monitor \
   eribot-monitor
 ```
 
+## 🧪 Testing
+
+### Prerequisites
+```bash
+cd python_monitor
+pip install -r requirements.txt
+```
+
+### Run All Tests
+```bash
+# Unit tests only (fast)
+pytest tests/ -v -m "unit"
+
+# Unit tests with coverage
+pytest tests/ -v -m "unit" --cov=. --cov-report=html
+
+# Integration tests (requires services running)
+pytest tests/ -v -m "integration" --run-integration
+
+# All tests
+pytest tests/ -v
+```
+
+### Test Categories
+
+- **Unit Tests** (`-m unit`): Fast tests with mocking, no external dependencies
+- **Integration Tests** (`-m integration`): Tests requiring real services (Slack, remediator)
+- **Slow Tests** (`-m slow`): Tests that take longer to run
+
+### Test Structure
+```
+python_monitor/tests/
+├── conftest.py              # Shared fixtures and configuration
+├── test_config_loader.py    # Configuration loading tests
+├── test_slack_client.py     # Slack integration tests
+├── test_remediation.py      # Remediation client tests
+├── test_monitor.py          # Core monitoring tests
+├── test_health_checker.py   # Health checking tests
+├── test_integration.py      # End-to-end integration tests
+└── test_validators.py       # Input validation tests
+```
+
+### Running Specific Tests
+```bash
+# Test configuration loading
+pytest tests/test_config_loader.py -v
+
+# Test Slack client (unit tests only)
+pytest tests/test_slack_client.py -v -m "unit"
+
+# Test with real Slack API (requires token in .env)
+pytest tests/test_slack_client.py -v -m "integration" --run-integration
+
+# Test monitoring core functionality
+pytest tests/test_monitor.py -v
+```
+
+### Test Configuration
+
+Tests use environment variables and fixtures for configuration:
+
+```bash
+# For integration tests
+export SLACK_BOT_TOKEN=xoxb-your-test-token
+export SLACK_CHANNEL=#test-alerts
+export REMEDIATOR_URL=http://localhost:5001
+
+# Run integration tests
+pytest tests/ -v --run-integration
+```
+
 ## 🔒 Security Considerations
 
 ### Authentication & Authorization
@@ -254,27 +329,6 @@ docker run -d --name eribot-monitor \
 - **Audit Logging**: All actions are logged with timestamps and context
 - **Rate Limiting**: Built-in protection against API abuse
 
-## 🧪 Testing
-
-### Run Unit Tests
-```bash
-cd python_monitor
-pytest tests/ -v --cov=. -m "unit"
-```
-
-### Run Integration Tests
-```bash
-# Requires real services running
-pytest tests/ -v --run-integration -m "integration"
-```
-
-### Run Security Scans
-```bash
-# GitHub Actions includes automated security scanning
-# Manual security scan:
-python -m bandit -r python_monitor/
-```
-
 ## 📖 API Documentation
 
 ### Remediation Service Endpoints
@@ -282,29 +336,32 @@ python -m bandit -r python_monitor/
 **Health Check:**
 ```http
 GET /health
+GET /api/health/detailed
 ```
 
 **Execute Remediation:**
 ```http
-POST /remediate
+POST /api/remediation/execute
 Content-Type: application/json
 
 {
   "issueType": "high_cpu",
   "context": {
-    "cpu_percent": 95.0
-  }
+    "cpu_percent": 95.0,
+    "hostname": "server-01"
+  },
+  "priority": 8
 }
 ```
 
 **Get Available Actions:**
 ```http
-GET /actions
+GET /api/remediation/actions
 ```
 
 **Service Status:**
 ```http
-GET /status
+GET /api/remediation/status
 ```
 
 ## 🤝 Contributing
@@ -317,15 +374,20 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 git clone https://github.com/Ericlein/eribot.git
 cd eribot
 
-# Install development dependencies
+# Set up Python environment
+cd python_monitor
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-pip install pre-commit
+
+# Install development dependencies
+pip install pytest pytest-cov black flake8 mypy pre-commit
 
 # Set up pre-commit hooks
 pre-commit install
 
 # Run tests
-pytest
+pytest tests/ -v
 ```
 
 ### Code Quality Standards
@@ -344,9 +406,13 @@ pytest
 echo $SLACK_BOT_TOKEN | grep "^xoxb-"
 
 # Test connection
+cd python_monitor
 python -c "
-from slack_client import test_slack_connection
-print(test_slack_connection())
+from clients.slack import SlackClient
+from config import load_config
+config = load_config()
+client = SlackClient(config.slack)
+print('Connection test:', client.test_connection())
 "
 ```
 
@@ -357,7 +423,8 @@ cat config/config.yaml | grep threshold
 
 # Test with lower thresholds temporarily
 export CPU_THRESHOLD=50
-python monitor.py
+cd python_monitor
+python main.py
 ```
 
 **Service connection issues:**
@@ -389,5 +456,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## ❓ Support
 - **Issues**: [GitHub Issues](https://github.com/Ericlein/eribot/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Ericlein/eribot/discussions)
+- **Quick Start**: [QUICK_START.md](QUICK_START.md)
 
 ---

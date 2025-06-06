@@ -90,6 +90,8 @@ cd eribot
 
 # 2. Set up Python environment
 cd python_monitor
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # 3. Build C# service
@@ -106,7 +108,7 @@ cp .env.example .env
 cd csharp_remediator && dotnet run
 
 # Terminal 2: Monitoring service
-cd python_monitor && python monitor.py
+cd python_monitor && python main.py
 ```
 
 ## 🧪 Step 3: Test Your Installation
@@ -138,15 +140,21 @@ tail -f logs/remediator.log
 ```bash
 # Docker
 docker-compose exec eribot-monitor python -c "
-from slack_client import send_slack_message
-print('Test result:', send_slack_message('🤖 EriBot test message!'))
+from clients.slack import SlackClient
+from config import load_config
+config = load_config()
+client = SlackClient(config.slack)
+print('Test result:', client.send_message('🤖 EriBot test message!'))
 "
 
 # Native
 cd python_monitor
 python -c "
-from slack_client import send_slack_message
-print('Test result:', send_slack_message('🤖 EriBot test message!'))
+from clients.slack import SlackClient
+from config import load_config
+config = load_config()
+client = SlackClient(config.slack)
+print('Test result:', client.send_message('🤖 EriBot test message!'))
 "
 ```
 
@@ -295,6 +303,52 @@ remediator:
   retry_attempts: 5        # More retries
 ```
 
+## 🧪 Step 7: Testing Your Setup
+
+### Run Unit Tests
+
+```bash
+cd python_monitor
+
+# Install test dependencies (if not already installed)
+pip install pytest pytest-cov pytest-mock
+
+# Run unit tests
+pytest tests/ -v -m "unit"
+
+# Run with coverage
+pytest tests/ -v -m "unit" --cov=. --cov-report=html
+```
+
+### Run Integration Tests
+
+```bash
+# Set up test environment
+export SLACK_BOT_TOKEN=xoxb-your-token-here
+export SLACK_CHANNEL=#test-alerts
+
+# Run integration tests (requires real services)
+pytest tests/ -v -m "integration" --run-integration
+```
+
+### Test Categories
+
+- **Unit Tests**: Fast tests with mocking, no external dependencies
+- **Integration Tests**: Tests with real Slack API and services
+- **Slow Tests**: Performance and stress tests
+
+### View Test Coverage
+
+```bash
+# Generate HTML coverage report
+pytest tests/ --cov=. --cov-report=html
+
+# Open coverage report
+open htmlcov/index.html  # macOS
+xdg-open htmlcov/index.html  # Linux
+start htmlcov/index.html  # Windows
+```
+
 ## 🚨 Troubleshooting
 
 ### Common Issues
@@ -305,9 +359,15 @@ remediator:
 echo $SLACK_BOT_TOKEN | head -c 20
 # Should start with "xoxb-"
 
-# Check bot permissions
-curl -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-     https://slack.com/api/auth.test
+# Test authentication
+cd python_monitor
+python -c "
+from clients.slack import SlackClient
+from config import load_config
+config = load_config()
+client = SlackClient(config.slack)
+print('Auth test:', client.test_connection())
+"
 ```
 
 **"Remediation service not responding"**
@@ -334,6 +394,17 @@ export MEMORY_THRESHOLD=50
 python -c "import psutil; print(f'CPU: {psutil.cpu_percent()}%, Memory: {psutil.virtual_memory().percent}%')"
 ```
 
+**"Import errors in Python"**
+```bash
+# Check Python path
+cd python_monitor
+export PYTHONPATH=$(pwd)
+python -c "from config import load_config; print('Imports working')"
+
+# Verify dependencies
+pip install -r requirements.txt
+```
+
 ### Getting Help
 
 **Check system status:**
@@ -351,10 +422,36 @@ tail -f logs/remediator.log
 ```bash
 cd python_monitor
 python -c "
-from config_loader import ConfigLoader
-loader = ConfigLoader()
-config = loader.load()
-print('Config loaded successfully:', loader.validate())
+from config import load_config
+try:
+    config = load_config()
+    print('Configuration loaded successfully')
+    print(f'CPU threshold: {config.monitoring.cpu_threshold}%')
+    print(f'Slack channel: {config.slack.channel}')
+except Exception as e:
+    print(f'Configuration error: {e}')
+"
+```
+
+**Test individual components:**
+```bash
+# Test Slack client
+cd python_monitor
+python -c "
+from clients.slack import SlackClient
+from config import load_config
+config = load_config()
+client = SlackClient(config.slack)
+print('Slack test:', client.send_message('Test from setup'))
+"
+
+# Test remediation client
+python -c "
+from clients.remediation import RemediationClient
+from config import load_config
+config = load_config()
+client = RemediationClient(config.remediator)
+print('Remediation status:', client.get_service_status())
 "
 ```
 
@@ -383,6 +480,13 @@ docker-compose --profile monitoring up -d
 ```bash
 # Start with logging stack
 docker-compose --profile logging up -d
+```
+
+**Run security scans:**
+```bash
+# Security scanning
+bandit -r python_monitor/
+safety check
 ```
 
 ## 🎉 Congratulations!
