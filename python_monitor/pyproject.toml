@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "eribot-monitor"
+version = "1.0.0"
+description = "EriBot system monitor service"
+authors = [
+  { name = "Your Name", email = "your@email.com" }
+]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+  "slack-sdk==3.20.0",
+  "requests==2.31.0",
+  "psutil==5.9.8",
+  "python-dotenv==1.0.0",
+  "pyyaml==6.0.1",
+  "schedule==1.2.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==8.0.0",
+  "pytest-cov==4.1.0",
+  "pytest-mock==3.12.0",
+  "pytest-asyncio==0.21.2",
+  "flake8==7.0.0",
+  "black==24.1.1",
+  "mypy==1.8.0",
+  "types-requests==2.31.0",
+  "types-PyYAML==6.0.12",
+  "pre-commit==3.6.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["python_monitor*"]
