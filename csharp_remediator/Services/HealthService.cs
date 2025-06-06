@@ -109,7 +109,7 @@ public class HealthService : IHealthService
                 OverallStatus = overallHealthy ? "healthy" : "degraded",
                 Timestamp = DateTime.UtcNow,
                 Uptime = uptime,
-                Version = "1.0.0",
+                Version = "2.0.0",
                 Components = components,
                 Metrics = metrics
             };

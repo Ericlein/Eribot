@@ -5,9 +5,37 @@ All notable changes to EriBot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## Release v2.0.0 - 06.06.2025
+
+### ⚠️ Breaking Changes
+
+- Complete refactor of the Python monitoring and auto-remediation system.
+- All Python modules are now under the `python_monitor` package with new submodules for configuration, clients, and core logic.
+- Configuration files and environment variable loading logic have changed.
+- All core APIs (monitoring, Slack, remediation) have new class names, constructor signatures, and usage patterns.
+- Exception types and error handling interfaces have changed.
+
+## Migration
+
+- Update all imports to use the new `python_monitor` namespace.
+- Update your configuration files and environment variables to match the new required structure.
+- See the [PR diff](https://github.com/Ericlein/eribot/pull/5/files) for details on changed APIs and file structure.
+
+## Enhancements
+
+- Improved modularity and testability
+- More robust configuration loading with `.env` support
+- Clearer error messages and exception handling
+
+
+## v1.0.0 - 05.06.2025
 
 ### Added
+- Initial stable release
+- Complete monitoring and remediation system
+- Docker support
+- Cross-platform installation scripts
+- Comprehensive documentation
 - Enhanced security documentation
 - Comprehensive contributing guidelines
 - Automated security scanning workflows
@@ -19,15 +47,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Memory leak in health checker
 - Race condition in service startup
-
-## [1.0.0] - 2025-01-15
-
-### Added
-- Initial stable release
-- Complete monitoring and remediation system
-- Docker support
-- Cross-platform installation scripts
-- Comprehensive documentation
 
 ### Features
 - System monitoring (CPU, memory, disk)
@@ -122,35 +141,35 @@ We use [Semantic Versioning](https://semver.org/):
 
 ## Download Links
 
-### Latest Release (1.0.0)
+### Latest Release (2.0.0)
 
 **Binary Downloads:**
-- [Windows x64](https://github.com/Ericlein/eribot/releases/download/v1.0.0/eribot-windows-x64-v1.0.0.zip)
-- [Linux x64](https://github.com/Ericlein/eribot/releases/download/v1.0.0/eribot-linux-x64-v1.0.0.tar.gz)
-- [Linux ARM64](https://github.com/Ericlein/eribot/releases/download/v1.0.0/eribot-linux-arm64-v1.0.0.tar.gz)
-- [macOS x64](https://github.com/Ericlein/eribot/releases/download/v1.0.0/eribot-macos-x64-v1.0.0.tar.gz)
-- [macOS ARM64](https://github.com/Ericlein/eribot/releases/download/v1.0.0/eribot-macos-arm64-v1.0.0.tar.gz)
+- [Windows x64](https://github.com/Ericlein/eribot/releases/download/v2.0.0/eribot-windows-x64-v2.0.0.zip)
+- [Linux x64](https://github.com/Ericlein/eribot/releases/download/v2.0.0/eribot-linux-x64-v2.0.0.tar.gz)
+- [Linux ARM64](https://github.com/Ericlein/eribot/releases/download/v2.0.0/eribot-linux-arm64-v2.0.0.tar.gz)
+- [macOS x64](https://github.com/Ericlein/eribot/releases/download/v2.0.0/eribot-macos-x64-v2.0.0.tar.gz)
+- [macOS ARM64](https://github.com/Ericlein/eribot/releases/download/v2.0.0/eribot-macos-arm64-v2.0.0.tar.gz)
 
 **Docker Images:**
 ```bash
 # Monitor service
-docker pull ghcr.io/ericlein/eribot/monitor:v1.0.0
+docker pull ghcr.io/ericlein/eribot/monitor:v2.0.0
 
 # Remediation service
-docker pull ghcr.io/ericlein/eribot/remediator:v1.0.0
+docker pull ghcr.io/ericlein/eribot/remediator:v2.0.0
 
 # All-in-one with docker-compose
-curl -L https://github.com/Ericlein/eribot/releases/download/v1.0.0/eribot-docker-v1.0.0.tar.gz | tar -xz
+curl -L https://github.com/Ericlein/eribot/releases/download/v2.0.0/eribot-docker-v2.0.0.tar.gz | tar -xz
 ```
 
 **Source Code:**
-- [Source (zip)](https://github.com/Ericlein/eribot/archive/refs/tags/v1.0.0.zip)
-- [Source (tar.gz)](https://github.com/Ericlein/eribot/archive/refs/tags/v1.0.0.tar.gz)
+- [Source (zip)](https://github.com/Ericlein/eribot/archive/refs/tags/v2.0.0.zip)
+- [Source (tar.gz)](https://github.com/Ericlein/eribot/archive/refs/tags/v2.0.0.tar.gz)
 
 ### Checksums (SHA256)
 
 ```
-sha256sum eribot-*-v1.0.0.*
+sha256sum eribot-*-v2.0.0.*
 ```
 
 ### Release Verification
@@ -159,7 +178,7 @@ All releases are signed with GPG key `[KEY_ID]`:
 
 ```bash
 # Download signature
-curl -L https://github.com/Ericlein/eribot/releases/download/v1.0.0/checksums.sha256.sig
+curl -L https://github.com/Ericlein/eribot/releases/download/v2.0.0/checksums.sha256.sig
 
 # Verify signature
 gpg --verify checksums.sha256.sig checksums.sha256
@@ -198,7 +217,7 @@ Response:
 
 ### Contributors
 
-Thanks to me who made v1.0.0 possible:
+Thanks to me who made v2.0.0 possible:
 
 - **@Ericlein** - Project creator and maintainer
 ---

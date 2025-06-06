@@ -50,7 +50,7 @@ public record DetailedHealthStatus
     public string OverallStatus { get; init; } = string.Empty;
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
     public TimeSpan Uptime { get; init; }
-    public string Version { get; init; } = "1.0.0";
+    public string Version { get; init; } = "2.0.0";
     public Dictionary<string, ComponentHealth> Components { get; init; } = new();
     public ServiceMetrics Metrics { get; init; } = new();
 }

@@ -117,7 +117,7 @@ public class RemediationService : IRemediationService
                 availableActions = GetAvailableActions(),
                 remediationCounts = _remediationCounts,
                 timestamp = DateTime.UtcNow,
-                version = "1.0.0",
+                version = "2.0.0",
                 memoryUsage = GC.GetTotalMemory(false)
             };
 

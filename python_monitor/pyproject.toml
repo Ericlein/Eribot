@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "eribot-monitor"
-version = "1.0.0"
+version = "2.0.0"
 description = "EriBot system monitor service"
 authors = [
-  { name = "Your Name", email = "your@email.com" }
+  { name = "Eric S"}
 ]
 readme = "README.md"
 requires-python = ">=3.10"
