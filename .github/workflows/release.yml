@@ -142,6 +142,12 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Normalize repository name (lowercase)
+      id: repo
+      run: |
+        REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
+        echo "repo_lc=$REPO_LC" >> $GITHUB_OUTPUT
+
     - name: Build and push Monitor image
       uses: docker/build-push-action@v5
       with:
@@ -149,8 +155,8 @@ jobs:
         file: ./docker/Dockerfile.python
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ github.repository }}/monitor:${{ steps.version.outputs.version_number }}
-          ${{ env.REGISTRY }}/${{ github.repository }}/monitor:latest
+          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/monitor:${{ steps.version.outputs.version_number }}
+          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/monitor:latest
         platforms: linux/amd64,linux/arm64
 
     - name: Build and push Remediator image
@@ -160,8 +166,8 @@ jobs:
         file: ./docker/Dockerfile.csharp
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ github.repository }}/remediator:${{ steps.version.outputs.version_number }}
-          ${{ env.REGISTRY }}/${{ github.repository }}/remediator:latest
+          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/monitor:${{ steps.version.outputs.version_number }}
+          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/monitor:latest
         platforms: linux/amd64,linux/arm64
 
   # Simple binary builds
