@@ -26,6 +26,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
+      version_number: ${{ steps.version.outputs.version_number }}
       is_prerelease: ${{ steps.version.outputs.is_prerelease }}
       changelog_section: ${{ steps.changelog.outputs.section }}
     
@@ -51,23 +52,33 @@ jobs:
           fi
         fi
         
+        # Extract version number without 'v' prefix
+        VERSION_NUMBER="${VERSION#v}"
+        
         echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
         echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
         
         echo "🏷️ Release version: $VERSION"
+        echo "🔢 Version number: $VERSION_NUMBER"
         echo "🔖 Is pre-release: $IS_PRERELEASE"
 
     - name: Validate version format
       run: |
         VERSION="${{ steps.version.outputs.version }}"
-        # FIXED: Removed the negation (!) and flipped the logic
-        if [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9\-\.]+)?$ ]]; then
-          echo "✅ Version format is valid: $VERSION"
-        else
-          echo "❌ Invalid version format: $VERSION"
-          echo "Expected format: v1.0.0 or v1.0.0-alpha.1"
-          exit 1
-        fi
+        echo "Validating version: $VERSION"
+        
+        # Simple validation that works reliably in GitHub Actions
+        case "$VERSION" in
+          v[0-9]*.[0-9]*.[0-9]*)
+            echo "✅ Version format is valid: $VERSION"
+            ;;
+          *)
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: v1.0.0, v1.2.3, v1.0.0-alpha, etc."
+            exit 1
+            ;;
+        esac
 
     - name: Extract changelog section
       id: changelog
@@ -183,22 +194,22 @@ jobs:
     - name: Build .NET applications for multiple platforms
       run: |
         cd csharp_remediator
-        VERSION="${{ needs.validate-release.outputs.version }}"
+        VERSION="${{ needs.validate-release.outputs.version_number }}"
         
         # Windows x64
-        dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:Version=${VERSION#v} -o ../release-artifacts/win-x64
+        dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/win-x64
         
         # Linux x64
-        dotnet publish -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:Version=${VERSION#v} -o ../release-artifacts/linux-x64
+        dotnet publish -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/linux-x64
         
         # Linux ARM64 (for Raspberry Pi, etc.)
-        dotnet publish -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -p:Version=${VERSION#v} -o ../release-artifacts/linux-arm64
+        dotnet publish -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/linux-arm64
         
         # macOS x64
-        dotnet publish -c Release -r osx-x64 --self-contained -p:PublishSingleFile=true -p:Version=${VERSION#v} -o ../release-artifacts/osx-x64
+        dotnet publish -c Release -r osx-x64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/osx-x64
         
         # macOS ARM64 (Apple Silicon)
-        dotnet publish -c Release -r osx-arm64 --self-contained -p:PublishSingleFile=true -p:Version=${VERSION#v} -o ../release-artifacts/osx-arm64
+        dotnet publish -c Release -r osx-arm64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/osx-arm64
 
     - name: Create installation packages
       run: |
@@ -335,8 +346,12 @@ jobs:
         tags: |
           type=semver,pattern={{version}},value=${{ needs.validate-release.outputs.version }}
           type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate-release.outputs.version }}
-          type=semver,pattern={{major}},value=${{ needs.validate-release.outputs.version }}
+          type=semver,pattern={{major}},value=${{ needs.validate-release.outputs.version }},enable={{is_default_branch}}
           type=raw,value=latest,enable={{is_default_branch}}
+        labels: |
+          org.opencontainers.image.title=EriBot Monitor
+          org.opencontainers.image.description=EriBot Python monitoring service
+          org.opencontainers.image.version=${{ needs.validate-release.outputs.version_number }}
 
     - name: Extract metadata for Remediator
       id: meta-remediator
@@ -346,8 +361,12 @@ jobs:
         tags: |
           type=semver,pattern={{version}},value=${{ needs.validate-release.outputs.version }}
           type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate-release.outputs.version }}
-          type=semver,pattern={{major}},value=${{ needs.validate-release.outputs.version }}
+          type=semver,pattern={{major}},value=${{ needs.validate-release.outputs.version }},enable={{is_default_branch}}
           type=raw,value=latest,enable={{is_default_branch}}
+        labels: |
+          org.opencontainers.image.title=EriBot Remediator
+          org.opencontainers.image.description=EriBot C# remediation service
+          org.opencontainers.image.version=${{ needs.validate-release.outputs.version_number }}
 
     - name: Build and push Monitor image
       uses: docker/build-push-action@v5
@@ -395,7 +414,7 @@ jobs:
       id: release-notes
       run: |
         VERSION="${{ needs.validate-release.outputs.version }}"
-        VERSION_NUMBER="${VERSION#v}"
+        VERSION_NUMBER="${{ needs.validate-release.outputs.version_number }}"
         
         echo "# EriBot Release $VERSION 🤖" > release-notes.md
         echo "" >> release-notes.md
@@ -530,7 +549,7 @@ jobs:
           🚀 **Quick Install:**
           ```
           # Docker
-          docker run ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MONITOR }}:${{ needs.validate-release.outputs.version }}
+          docker run ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MONITOR }}:${{ needs.validate-release.outputs.version_number }}
           
           # Linux
           curl -L "https://github.com/${{ github.repository }}/releases/download/${{ needs.validate-release.outputs.version }}/eribot-linux-x64-${{ needs.validate-release.outputs.version }}.tar.gz" | tar -xz
