@@ -5,6 +5,7 @@ Logging configuration module for EriBot
 import logging
 import logging.handlers
 import sys
+import os
 from pathlib import Path
 
 
