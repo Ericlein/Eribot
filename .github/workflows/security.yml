@@ -12,6 +12,7 @@ on:
 permissions:
   contents: read
   security-events: write
+  actions: read  # Required for private repos
 
 jobs:
   dependency-scan:
@@ -23,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -46,7 +47,7 @@ jobs:
           pip-audit --format=json --output=pip-audit-report.json || echo "Pip-audit completed with warnings"
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
         continue-on-error: true
@@ -70,7 +71,7 @@ jobs:
           fi
 
       - name: Upload dependency scan results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-scan-results
           path: |
@@ -119,6 +120,7 @@ jobs:
         if: always()
         with:
           sarif_file: 'trivy-results.sarif'
+        continue-on-error: true  # Add this to handle permission issues
 
       - name: Build and scan Docker images with Trivy
         run: |
@@ -141,14 +143,14 @@ jobs:
           fi
 
       - name: Upload Docker scan results
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-docker-monitor.sarif'
         continue-on-error: true
 
       - name: Upload Docker scan results (Remediator)
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         if: always()
         with:
           sarif_file: 'trivy-docker-remediator.sarif'
@@ -163,13 +165,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v2
+        uses: github/codeql-action/init@v3
         with:
           languages: python, csharp
           queries: security-and-quality
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v3
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
         continue-on-error: true
@@ -182,9 +184,10 @@ jobs:
           fi
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v2
+        uses: github/codeql-action/analyze@v3
         with:
           category: "/language:python,csharp"
+        continue-on-error: true  # Add this to handle permission issues
 
   bandit-security-scan:
     runs-on: ubuntu-latest
@@ -195,7 +198,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
@@ -214,7 +217,7 @@ jobs:
           fi
 
       - name: Upload Bandit results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: bandit-results
           path: |
@@ -238,11 +241,11 @@ jobs:
             p/secrets
             p/python
             p/csharp
-          generateSarif: "1"
+          generateSarif: true
         continue-on-error: true
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: semgrep.sarif
         if: always()
@@ -279,7 +282,7 @@ jobs:
           fi
 
       - name: Upload Scout results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-scout-results
           path: |
@@ -337,7 +340,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         continue-on-error: true
 
       - name: Generate security summary
@@ -364,7 +367,7 @@ jobs:
           cat security-summary.md
 
       - name: Upload security summary
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: security-summary
           path: security-summary.md
