@@ -15,7 +15,7 @@ license = { text = "MIT" }
 
 dependencies = [
   "slack-sdk==3.20.0",
-  "requests==2.31.0",
+  "requests==2.32.2",
   "psutil==5.9.8",
   "python-dotenv==1.0.0",
   "pyyaml==6.0.1",
