@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Ericlein/monitor-slackbot/actions/workflows/ci.yml/badge.svg)](https://github.com/Ericlein/monitor-slackbot/actions)
 [![CD](https://github.com/Ericlein/monitor-slackbot/actions/workflows/cd.yml/badge.svg)](https://github.com/Ericlein/monitor-slackbot/actions)
-[![CI](https://github.com/Ericlein/monitor-slackbot/actions/workflows/ci.yml/badge.svg)](https://github.com/Ericlein/monitor-slackbot/actions/workflows/ci.yml)
+[![Security](https://github.com/Ericlein/Eribot/actions/workflows/security.yml/badge.svg)](https://github.com/Ericlein/Eribot/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 A Python + C# hybrid DevOps bot that monitors systems and talks to Slack.
