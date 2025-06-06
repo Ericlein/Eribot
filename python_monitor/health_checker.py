@@ -125,7 +125,6 @@ class SystemHealthChecker:
             except Exception as e:
                 logging.warning(f"Failed to get load average: {e}")
 
-
             # Determine health status
             healthy = cpu_percent < 90  # Consider unhealthy if > 90%
             status = "normal" if healthy else f"high usage: {cpu_percent}%"
