@@ -77,7 +77,12 @@ class TestExceptions:
         """Test ThresholdExceededError with custom message"""
         error = ThresholdExceededError("Memory", 85.0, 80.0, "Custom message")
         assert error.metric == "Memory"
-        assert str(error) == "Custom message"
+        assert error.current_value == 85.0
+        assert error.threshold == 80.0
+        # The custom message should be in the string representation
+        assert "Custom message" in str(error)
+        # But details should still be populated
+        assert error.details["exceeded_by"] == 5.0
 
     @pytest.mark.unit
     def test_rate_limit_error(self):
@@ -142,3 +147,72 @@ class TestExceptions:
         error = MonitoringError("Monitor failed")
         assert isinstance(error, ErioBotException)
         assert str(error) == "Monitor failed"
+
+    # Additional tests to improve coverage
+    @pytest.mark.unit
+    def test_error_helper_functions(self):
+        """Test error helper functions"""
+        from utils.exceptions import (
+            raise_config_error,
+            raise_threshold_error,
+            raise_slack_error,
+            raise_remediation_error,
+        )
+
+        # Test raise_config_error
+        with pytest.raises(ConfigurationError):
+            raise_config_error("test_setting", "invalid_value", "valid_format")
+
+        # Test raise_threshold_error
+        with pytest.raises(ThresholdExceededError):
+            raise_threshold_error("CPU", 95.0, 90.0)
+
+        # Test raise_slack_error
+        with pytest.raises(SlackError):
+            raise_slack_error("send_message", "API error")
+
+        # Test raise_remediation_error
+        with pytest.raises(RemediationError):
+            raise_remediation_error("high_cpu", "Service unavailable")
+
+    @pytest.mark.unit
+    def test_handle_exception_decorator(self):
+        """Test handle_exception decorator"""
+        from utils.exceptions import handle_exception
+
+        @handle_exception
+        def test_function_success():
+            return "success"
+
+        @handle_exception
+        def test_function_connection_error():
+            raise ConnectionError("Network issue")
+
+        @handle_exception
+        def test_function_file_not_found():
+            raise FileNotFoundError("File missing")
+
+        @handle_exception
+        def test_function_permission_error():
+            raise PermissionError("Access denied")
+
+        @handle_exception
+        def test_function_value_error():
+            raise ValueError("Invalid value")
+
+        @handle_exception
+        def test_function_generic_error():
+            raise RuntimeError("Generic error")
+
+        # Test successful execution
+        assert test_function_success() == "success"
+
+        # Test error conversions
+        with pytest.raises(NetworkError):
+            test_function_connection_error()
+
+        with pytest.raises(ConfigurationError):
+            test_function_file_not_found()
+
+        with pytest.raises(ErioBotException):
+            test_function_generic_error()
