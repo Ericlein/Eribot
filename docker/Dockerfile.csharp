@@ -21,7 +21,7 @@ COPY csharp_remediator/ ./
 RUN dotnet publish -c Release -o /app/publish \
     --no-restore \
     --self-contained false \
-    /p:PublishReadyToRun=true
+    -p:PublishReadyToRun=true
 
 # Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
