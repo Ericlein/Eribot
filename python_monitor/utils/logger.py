@@ -6,9 +6,7 @@ import logging
 import logging.handlers
 import os
 import sys
-from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 
 class ColorFormatter(logging.Formatter):

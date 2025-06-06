@@ -1,8 +1,6 @@
 import pytest
 from utils.exceptions import (
     ConfigurationError,
-    SlackError,
-    RemediationError,
     ThresholdExceededError,
 )
 

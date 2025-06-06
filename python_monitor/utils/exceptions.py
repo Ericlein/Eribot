@@ -22,43 +22,36 @@ class ErioBotException(Exception):
 class ConfigurationError(ErioBotException):
     """Raised when configuration is invalid or missing"""
 
-    pass
 
 
 class SlackError(ErioBotException):
     """Raised when Slack integration fails"""
 
-    pass
 
 
 class RemediationError(ErioBotException):
     """Raised when remediation actions fail"""
 
-    pass
 
 
 class MonitoringError(ErioBotException):
     """Raised when system monitoring fails"""
 
-    pass
 
 
 class ValidationError(ErioBotException):
     """Raised when input validation fails"""
 
-    pass
 
 
 class NetworkError(ErioBotException):
     """Raised when network operations fail"""
 
-    pass
 
 
 class ServiceUnavailableError(ErioBotException):
     """Raised when a required service is unavailable"""
 
-    pass
 
 
 class ThresholdExceededError(ErioBotException):
@@ -106,13 +99,11 @@ class RateLimitError(ErioBotException):
 class AuthenticationError(ErioBotException):
     """Raised when authentication fails"""
 
-    pass
 
 
 class PermissionError(ErioBotException):
     """Raised when insufficient permissions are detected"""
 
-    pass
 
 
 class SystemResourceError(ErioBotException):
@@ -145,7 +136,6 @@ class TimeoutError(ErioBotException):
 class DataError(ErioBotException):
     """Raised when data is invalid or corrupted"""
 
-    pass
 
 
 class DependencyError(ErioBotException):

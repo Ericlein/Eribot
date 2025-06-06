@@ -180,7 +180,6 @@ class TestMonitor:
     def test_monitor_start_stop(self, mock_slack_client, mock_remediation_client, app_config):
         """Test monitor start and stop functionality"""
         from core.monitor import SystemMonitor
-        import time
 
         # Mock the clients
         mock_slack_instance = Mock()

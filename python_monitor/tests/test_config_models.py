@@ -1,5 +1,5 @@
 import pytest
-from config.models import AppConfig, MonitoringConfig, SlackConfig
+from config.models import MonitoringConfig, SlackConfig
 
 
 @pytest.mark.unit

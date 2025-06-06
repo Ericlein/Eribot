@@ -3,15 +3,13 @@ Health checking module for EriBot Python monitoring service
 """
 
 import time
-import socket
 import psutil
 import requests
-from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
+from datetime import datetime
+from typing import Dict, Any
 from dataclasses import dataclass
 
 from utils.logger import get_logger
-from utils.exceptions import ServiceUnavailableError, NetworkError
 
 
 @dataclass

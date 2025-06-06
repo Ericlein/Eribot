@@ -3,9 +3,6 @@ Tests for validators module
 """
 
 import pytest
-from unittest.mock import patch, mock_open
-import tempfile
-import os
 
 from python_monitor.utils.validators import (
     validate_slack_token,
