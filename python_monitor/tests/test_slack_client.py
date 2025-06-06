@@ -6,6 +6,9 @@ Fixed for new structure with proper mocking
 import pytest
 from unittest.mock import patch, MagicMock
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class TestSlackClientUnit:
     """Unit tests with mocking - fast and don't require real Slack API"""
@@ -136,12 +139,3 @@ class TestSlackClientIntegration:
         result = client.send_message(" Test message from pytest - Integration test")
         
         assert result is True
-
-def pytest_addoption(parser):
-    """Add custom command line options"""
-    parser.addoption(
-        "--run-integration",
-        action="store_true",
-        default=False,
-        help="Run integration tests (requires real API credentials)"
-    )

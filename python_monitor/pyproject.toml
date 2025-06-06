@@ -2,6 +2,29 @@
 requires = ["setuptools>=61", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.pytest]
+pythonpath = "python_monitor"
+testpaths = ["python_monitor/tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "-v",
+    "--tb=short",
+    "--strict-markers",
+    "--cov=python_monitor",
+    "--cov-report=term-missing",
+    "--cov-report=html:htmlcov",
+    "--cov-report=xml:coverage.xml",
+    "--cov-fail-under=80"
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests requiring external services",
+    "slow: Tests that take a long time to run",
+    "network: mark test as requiring network access"
+]
+
 [project]
 name = "eribot-monitor"
 version = "2.0.0"
