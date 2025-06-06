@@ -166,8 +166,8 @@ jobs:
         file: ./docker/Dockerfile.csharp
         push: true
         tags: |
-          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/monitor:${{ steps.version.outputs.version_number }}
-          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/monitor:latest
+          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/remediator:${{ steps.version.outputs.version_number }}
+          ${{ env.REGISTRY }}/${{ steps.repo.outputs.repo_lc }}/remediator:latest
         platforms: linux/amd64,linux/arm64
 
   # Simple binary builds
