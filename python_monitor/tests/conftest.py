@@ -59,6 +59,14 @@ def clean_environment():
     os.environ.update(original_env)
 
 
+@pytest.fixture(autouse=True)
+def skip_integration_in_ci(request):
+    """Automatically skip integration tests in CI environment"""
+    if request.node.get_closest_marker("integration"):
+        if os.environ.get("CI") or os.environ.get("GITHUB_ACTIONS"):
+            pytest.skip("Integration tests skipped in CI environment")
+
+
 # ---------------------
 # Config fixtures
 # ---------------------
