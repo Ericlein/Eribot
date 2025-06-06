@@ -1,93 +1,107 @@
+"""
+Configuration loader for EriBot.
+Fixed version with .env file loading.
+"""
+
 import yaml
 import os
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
+import sys
 import logging
+from typing import Optional
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+# Add parent directory to path for imports during transition
+current_dir = Path(__file__).parent
+parent_dir = current_dir.parent
+if str(parent_dir) not in sys.path:
+    sys.path.insert(0, str(parent_dir))
 
-@dataclass
-class MonitoringConfig:
-    cpu_threshold: int
-    disk_threshold: int
-    memory_threshold: int
-    check_interval: int
+# Load .env files automatically
+try:
+    from dotenv import load_dotenv
+    
+    # Try to load .env from different locations
+    env_files = [
+        Path('.env'),                    # Current directory
+        Path('../.env'),                 # Parent directory  
+        Path('../config/.env'),          # Config directory
+        current_dir.parent / '.env',     # Relative to this file
+    ]
+    
+    for env_file in env_files:
+        if env_file.exists():
+            load_dotenv(env_file)
+            logging.info(f"Loaded environment from: {env_file}")
+            break
+    else:
+        logging.warning("No .env file found - using system environment variables only")
+        
+except ImportError:
+    logging.warning("python-dotenv not available - using system environment variables only")
 
-@dataclass
-class SlackConfig:
-    channel: str
-    token: str
-    username: str = "EriBot"
-    icon_emoji: str = ":robot_face:"
+from .models import AppConfig, MonitoringConfig, SlackConfig, RemediatorConfig, LoggingConfig
 
-@dataclass
-class RemediatorConfig:
-    url: str
-    timeout: int = 30
-    retry_attempts: int = 3
+# Use fallback logging and exceptions during transition
+def get_logger(name):
+    return logging.getLogger(name)
 
-@dataclass
-class LoggingConfig:
-    level: str = "INFO"
-    max_file_size: str = "10MB"
-    backup_count: int = 5
-    console_output: bool = True
+class ConfigurationError(Exception):
+    pass
 
-@dataclass
-class AppConfig:
-    monitoring: MonitoringConfig
-    slack: SlackConfig
-    remediator: RemediatorConfig
-    logging: LoggingConfig
+class ValidationError(Exception):
+    pass
+
+logger = get_logger("config")
+
 
 class ConfigLoader:
+    """Enhanced configuration loader with better path resolution and validation."""
+    
     def __init__(self, config_path: Optional[str] = None):
         """
-        Initialize ConfigLoader with flexible path resolution
+        Initialize ConfigLoader.
         
         Args:
-            config_path: Path to config file. If None, will search for config.yaml
-                        in common locations
+            config_path: Path to config file. If None, searches common locations.
         """
         if config_path:
             self.config_path = Path(config_path)
         else:
             self.config_path = self._find_config_file()
         
-        self._config = None
+        self._config: Optional[AppConfig] = None
 
     def _find_config_file(self) -> Path:
-        """Find config.yaml in common locations"""
+        """Find config.yaml in common locations."""
         possible_paths = [
             Path("config/config.yaml"),                    # Relative to current dir
             Path("../config/config.yaml"),                 # Relative to python_monitor
-            Path(__file__).parent.parent / "config" / "config.yaml",  # Relative to this file
+            Path(__file__).parent.parent.parent / "config" / "config.yaml",  # Relative to this file
             Path("/opt/eribot/config/config.yaml"),        # Linux service location
             Path("C:/EriBot/config/config.yaml"),          # Windows service location
         ]
         
         for path in possible_paths:
             if path.exists():
-                logger.info(f"Found config file: {path}")
+                print(f"Found config file: {path}")
                 return path
         
         # Default fallback
         default_path = Path("config/config.yaml")
-        logger.warning(f"Config file not found. Using default: {default_path}")
+        print(f"Config file not found. Using default: {default_path}")
         return default_path
 
     def load(self) -> AppConfig:
-        """Load configuration from YAML file and environment variables"""
+        """Load configuration from YAML file and environment variables."""
         try:
             # Load YAML config if file exists
             yaml_config = {}
             if self.config_path.exists():
                 with open(self.config_path, 'r') as file:
                     yaml_config = yaml.safe_load(file) or {}
-                logger.info(f"Loaded YAML config from: {self.config_path}")
+                print(f"Loaded YAML config from: {self.config_path}")
             else:
-                logger.warning(f"Config file not found: {self.config_path}. Using environment variables only.")
+                print(f"Config file not found: {self.config_path}. Using environment variables only.")
             
             # Load monitoring config with env var overrides
             monitoring_yaml = yaml_config.get('monitoring', {})
@@ -131,31 +145,27 @@ class ConfigLoader:
                 logging=logging_config
             )
             
-            logger.info("Configuration loaded successfully")
-            logger.debug(f"Config: CPU={monitoring_config.cpu_threshold}%, "
-                        f"Disk={monitoring_config.disk_threshold}%, "
-                        f"Memory={monitoring_config.memory_threshold}%, "
-                        f"Interval={monitoring_config.check_interval}s")
+            print("Configuration loaded successfully")
+            print(f"Config: CPU={monitoring_config.cpu_threshold}%, "
+                  f"Disk={monitoring_config.disk_threshold}%, "
+                  f"Memory={monitoring_config.memory_threshold}%, "
+                  f"Interval={monitoring_config.check_interval}s")
             
             return self._config
             
         except FileNotFoundError:
-            logger.error(f"Configuration file {self.config_path} not found")
-            raise
+            raise ConfigurationError(f"Configuration file {self.config_path} not found")
         except yaml.YAMLError as e:
-            logger.error(f"Error parsing YAML configuration: {e}")
-            raise
+            raise ConfigurationError(f"Error parsing YAML configuration: {e}")
         except ValueError as e:
-            logger.error(f"Error converting configuration values: {e}")
-            raise
+            raise ConfigurationError(f"Error converting configuration values: {e}")
         except Exception as e:
-            logger.error(f"Unexpected error loading configuration: {e}")
-            raise
+            raise ConfigurationError(f"Unexpected error loading configuration: {e}")
 
     def validate(self) -> bool:
-        """Validate configuration values"""
+        """Validate configuration values."""
         if not self._config:
-            logger.error("Configuration not loaded")
+            print("Configuration not loaded")
             return False
         
         errors = []
@@ -164,7 +174,7 @@ class ConfigLoader:
         if not self._config.slack.token:
             errors.append("SLACK_BOT_TOKEN environment variable is required")
         
-        if not self._config.slack.token.startswith('xoxb-'):
+        if self._config.slack.token and not self._config.slack.token.startswith('xoxb-'):
             errors.append("SLACK_BOT_TOKEN must be a valid bot token (starts with 'xoxb-')")
         
         # Validate thresholds (1-100%)
@@ -197,57 +207,20 @@ class ConfigLoader:
         # Log all errors
         if errors:
             for error in errors:
-                logger.error(error)
+                print(f"ERROR: {error}")
             return False
         
-        logger.info("Configuration validation passed")
+        print("Configuration validation passed")
         return True
 
     def get_config(self) -> Optional[AppConfig]:
-        """Get the loaded configuration"""
+        """Get the loaded configuration."""
         return self._config
 
-    def reload(self) -> AppConfig:
-        """Reload configuration from file"""
-        logger.info("Reloading configuration")
-        return self.load()
 
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert configuration to dictionary (useful for debugging)"""
-        if not self._config:
-            return {}
-        
-        return {
-            'monitoring': {
-                'cpu_threshold': self._config.monitoring.cpu_threshold,
-                'disk_threshold': self._config.monitoring.disk_threshold,
-                'memory_threshold': self._config.monitoring.memory_threshold,
-                'check_interval': self._config.monitoring.check_interval
-            },
-            'slack': {
-                'channel': self._config.slack.channel,
-                'token': '***' if self._config.slack.token else None,  # Mask token
-                'username': self._config.slack.username,
-                'icon_emoji': self._config.slack.icon_emoji
-            },
-            'remediator': {
-                'url': self._config.remediator.url,
-                'timeout': self._config.remediator.timeout,
-                'retry_attempts': self._config.remediator.retry_attempts
-            },
-            'logging': {
-                'level': self._config.logging.level,
-                'max_file_size': self._config.logging.max_file_size,
-                'backup_count': self._config.logging.backup_count,
-                'console_output': self._config.logging.console_output
-            }
-        }
-
-
-# Convenience function for quick loading
 def load_config(config_path: Optional[str] = None) -> AppConfig:
     """
-    Load and validate configuration
+    Convenience function to load and validate configuration.
     
     Args:
         config_path: Optional path to config file
@@ -256,12 +229,12 @@ def load_config(config_path: Optional[str] = None) -> AppConfig:
         AppConfig instance
         
     Raises:
-        Various exceptions if config loading or validation fails
+        ConfigurationError: If config loading or validation fails
     """
     loader = ConfigLoader(config_path)
     config = loader.load()
     
     if not loader.validate():
-        raise ValueError("Configuration validation failed")
+        raise ConfigurationError("Configuration validation failed")
     
     return config

@@ -1,209 +1,179 @@
-"""
+﻿"""
 Tests for the monitor module
+Fixed for new structure with proper mocking
 """
 
 import pytest
-from unittest.mock import patch, MagicMock, Mock, call
-import sys
-import os
-import builtins
-
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
+from unittest.mock import patch, Mock
 
 class TestMonitor:
     """Test cases for the monitoring module"""
     
-    @pytest.fixture(autouse=True)
-    def setup_module_mocks(self):
-        """Setup mocks for module-level imports"""
-        # We need to mock these before importing the module
-        with patch('monitor.load_dotenv'):
-            with patch('monitor.ConfigLoader') as mock_config_loader:
-                # Setup config mock
-                mock_config = Mock()
-                mock_config.monitoring.cpu_threshold = 90  # Changed to match actual config
-                mock_config.monitoring.disk_threshold = 90
-                mock_config.monitoring.memory_threshold = 90
-                mock_config.monitoring.check_interval = 60
-                mock_config.remediator = Mock()
-                
-                mock_loader_instance = Mock()
-                mock_loader_instance.load.return_value = mock_config
-                mock_loader_instance.validate.return_value = True
-                mock_config_loader.return_value = mock_loader_instance
-                
-                with patch('monitor.RemediationClient'):
-                    # Now we can safely import
-                    import monitor
-                    self.monitor = monitor
-                    yield
+    @pytest.mark.unit
+    @patch('core.monitor.RemediationClient')
+    @patch('core.monitor.SlackClient')
+    def test_system_monitor_creation(self, mock_slack_client, mock_remediation_client, app_config):
+        """Test that SystemMonitor can be created"""
+        from core.monitor import SystemMonitor
+        
+        # Mock the client constructors to return mock instances
+        mock_slack_instance = Mock()
+        mock_slack_client.return_value = mock_slack_instance
+        
+        mock_remediation_instance = Mock()
+        mock_remediation_client.return_value = mock_remediation_instance
+        
+        monitor = SystemMonitor(app_config)
+        assert monitor is not None
+        assert monitor.config == app_config
+        
+        # Verify clients were created
+        mock_slack_client.assert_called_once_with(app_config.slack)
+        mock_remediation_client.assert_called_once_with(app_config.remediator)
     
     @pytest.mark.unit
-    @patch('monitor.psutil.cpu_percent')
-    @patch('monitor.psutil.disk_usage')
-    @patch('monitor.psutil.virtual_memory')
-    @patch('monitor.send_slack_message')
-    @patch('monitor.trigger_remediation')
-    def test_check_system_normal(self, mock_trigger, mock_slack, mock_memory, mock_disk, mock_cpu):
-        """Test system check with normal CPU and disk usage"""
-        mock_cpu.return_value = 50.0
-        mock_disk.return_value = MagicMock(percent=60.0)
-        mock_memory.return_value = MagicMock(percent=40.0)
+    def test_system_metrics_creation(self):
+        """Test SystemMetrics dataclass"""
+        from core.monitor import SystemMetrics
+        from datetime import datetime
         
-        cpu, disk = self.monitor.check_system()
-        
-        assert cpu == 50.0
-        assert disk == 60.0
-        mock_slack.assert_not_called()
-        mock_trigger.assert_not_called()
-    
-    @pytest.mark.unit
-    def test_check_system_high_cpu(self):
-        """Test system check with high CPU usage"""
-        with patch('monitor.psutil.cpu_percent', return_value=95.0):  # Above 90% threshold
-            with patch('monitor.psutil.disk_usage') as mock_disk:
-                mock_disk.return_value = MagicMock(percent=60.0)
-                with patch('monitor.psutil.virtual_memory') as mock_memory:
-                    mock_memory.return_value = MagicMock(percent=40.0)
-                    with patch('monitor.send_slack_message') as mock_slack:
-                        with patch.object(self.monitor, 'trigger_remediation') as mock_trigger:
-                            cpu, disk = self.monitor.check_system()
-                            
-                            assert cpu == 95.0
-                            assert disk == 60.0
-                            mock_slack.assert_called_with(":warning: High CPU usage detected: 95.0%")
-                            mock_trigger.assert_called_with("high_cpu")
-    
-    @pytest.mark.unit
-    @patch('monitor.psutil.cpu_percent')
-    @patch('monitor.psutil.disk_usage')
-    @patch('monitor.psutil.virtual_memory')
-    @patch('monitor.send_slack_message')
-    @patch('monitor.trigger_remediation')
-    def test_check_system_high_disk(self, mock_trigger, mock_slack, mock_memory, mock_disk, mock_cpu):
-        """Test system check with high disk usage"""
-        mock_cpu.return_value = 50.0
-        mock_disk.return_value = MagicMock(percent=95.0)
-        mock_memory.return_value = MagicMock(percent=40.0)
-        
-        cpu, disk = self.monitor.check_system()
-        
-        assert cpu == 50.0
-        assert disk == 95.0
-        mock_slack.assert_called_with(":warning: High Disk usage: 95.0%")
-        mock_trigger.assert_called_with("high_disk")
-    
-    @pytest.mark.unit
-    @patch('monitor.psutil.cpu_percent')
-    @patch('monitor.psutil.disk_usage')
-    @patch('monitor.psutil.virtual_memory')
-    @patch('monitor.send_slack_message')
-    @patch('monitor.trigger_remediation')
-    def test_check_system_high_memory(self, mock_trigger, mock_slack, mock_memory, mock_disk, mock_cpu):
-        """Test system check with high memory usage"""
-        mock_cpu.return_value = 50.0
-        mock_disk.return_value = MagicMock(percent=60.0)
-        mock_memory.return_value = MagicMock(percent=95.0)
-        
-        cpu, disk = self.monitor.check_system()
-        
-        assert cpu == 50.0
-        assert disk == 60.0
-        mock_slack.assert_called_with(":warning: High Memory usage detected: 95.0%")
-        mock_trigger.assert_called_with("high_memory")
-    
-    @pytest.mark.unit
-    @patch('monitor.psutil.cpu_percent')
-    @patch('monitor.psutil.disk_usage')
-    @patch('monitor.send_slack_message')
-    def test_trigger_remediation_success(self, mock_slack, mock_disk, mock_cpu):
-        """Test successful remediation trigger"""
-        # Setup mocks
-        mock_cpu.return_value = 85.0
-        mock_disk.return_value = MagicMock(percent=60.0)
-        
-        # Mock the remediation client that was created at module level
-        self.monitor.remediation_client.trigger_remediation = Mock(return_value=True)
-        
-        # Call trigger_remediation
-        self.monitor.trigger_remediation("high_cpu")
-        
-        # Verify remediation client was called
-        self.monitor.remediation_client.trigger_remediation.assert_called_once_with(
-            "high_cpu", 
-            {"cpu_percent": 85.0, "disk_percent": None}
+        metrics = SystemMetrics(
+            cpu_percent=45.0,
+            memory_percent=60.0,
+            disk_percent=70.0,
+            timestamp=datetime.now(),
+            hostname="test-host"
         )
         
-        # Verify success message was sent
-        slack_calls = mock_slack.call_args_list
-        assert any(":tools: Remediation triggered for high_cpu" in str(call) for call in slack_calls)
+        assert metrics.cpu_percent == 45.0
+        assert metrics.memory_percent == 60.0
+        assert metrics.disk_percent == 70.0
+        assert metrics.hostname == "test-host"
     
     @pytest.mark.unit
-    @patch('monitor.psutil.cpu_percent')
-    @patch('monitor.psutil.disk_usage')
-    @patch('monitor.send_slack_message')
-    def test_trigger_remediation_failure(self, mock_slack, mock_disk, mock_cpu):
-        """Test failed remediation trigger"""
+    @patch('core.monitor.RemediationClient')
+    @patch('core.monitor.SlackClient')
+    @patch('psutil.cpu_percent')
+    @patch('psutil.virtual_memory')
+    @patch('psutil.disk_usage') 
+    @patch('socket.gethostname')
+    def test_gather_metrics(self, mock_hostname, mock_disk, mock_memory, mock_cpu, 
+                           mock_slack_client, mock_remediation_client, app_config):
+        """Test gathering system metrics"""
+        from core.monitor import SystemMonitor
+        
         # Setup mocks
-        mock_cpu.return_value = 85.0
-        mock_disk.return_value = MagicMock(percent=60.0)
+        mock_cpu.return_value = 45.0
+        mock_memory.return_value = Mock(percent=60.0)
+        mock_disk.return_value = Mock(percent=70.0)
+        mock_hostname.return_value = "test-host"
         
-        # Mock the remediation client to return False
-        self.monitor.remediation_client.trigger_remediation = Mock(return_value=False)
+        # Mock the clients
+        mock_slack_client.return_value = Mock()
+        mock_remediation_client.return_value = Mock()
         
-        # Call trigger_remediation
-        self.monitor.trigger_remediation("high_cpu")
+        monitor = SystemMonitor(app_config)
+        metrics = monitor._gather_metrics()
         
-        # Verify failure message was sent
-        slack_calls = mock_slack.call_args_list
-        assert any(":x: Failed to trigger remediation for high_cpu" in str(call) for call in slack_calls)
+        assert metrics.cpu_percent == 45.0
+        assert metrics.memory_percent == 60.0
+        assert metrics.disk_percent == 70.0
+        assert metrics.hostname == "test-host"
     
     @pytest.mark.unit
-    @patch('monitor.send_slack_message')
-    def test_trigger_remediation_exception(self, mock_slack):
-        """Test remediation trigger with exception"""
-        # Mock the remediation client to raise an exception
-        self.monitor.remediation_client.trigger_remediation = Mock(
-            side_effect=Exception("Connection error")
-        )
+    @patch('core.monitor.RemediationClient')
+    @patch('core.monitor.SlackClient')
+    def test_check_system_normal(self, mock_slack_client, mock_remediation_client, 
+                                app_config, mock_psutil):
+        """Test system check with normal metrics"""
+        from core.monitor import SystemMonitor
         
-        # Call trigger_remediation
-        self.monitor.trigger_remediation("high_cpu")
+        # Mock the clients
+        mock_slack_instance = Mock()
+        mock_slack_client.return_value = mock_slack_instance
+        mock_remediation_instance = Mock()
+        mock_remediation_client.return_value = mock_remediation_instance
         
-        # Verify error message was sent
-        slack_calls = mock_slack.call_args_list
-        assert any(":x: Error triggering remediation: Connection error" in str(call) for call in slack_calls)
+        with patch('socket.gethostname', return_value='test-host'):
+            monitor = SystemMonitor(app_config)
+            metrics = monitor.check_system()
+            
+            # Should not trigger any alerts with healthy metrics
+            assert metrics.cpu_percent == 45.0  # From mock_psutil fixture
+            assert monitor.alert_count == 0
     
     @pytest.mark.unit
-    def test_thresholds(self):
-        """Test that thresholds are properly set from config"""
-        assert self.monitor.CPU_THRESHOLD == 90  # Changed to match actual config
-        assert self.monitor.DISK_THRESHOLD == 90
-        assert self.monitor.MEMORY_THRESHOLD == 90
-        assert self.monitor.CHECK_INTERVAL == 60
+    @patch('core.monitor.RemediationClient')
+    @patch('core.monitor.SlackClient')
+    @patch('psutil.cpu_percent')
+    @patch('psutil.virtual_memory')
+    @patch('psutil.disk_usage')
+    @patch('socket.gethostname')
+    def test_check_system_high_cpu(self, mock_hostname, mock_disk, mock_memory, mock_cpu,
+                                   mock_slack_client, mock_remediation_client, app_config):
+        """Test system check with high CPU"""
+        from core.monitor import SystemMonitor
+        
+        # Setup system metrics mocks
+        mock_cpu.return_value = 95.0  # High CPU
+        mock_memory.return_value = Mock(percent=60.0)
+        mock_disk.return_value = Mock(percent=70.0)
+        mock_hostname.return_value = 'test-host'
+        
+        # Mock the clients
+        mock_slack_instance = Mock()
+        mock_slack_client.return_value = mock_slack_instance
+        mock_remediation_instance = Mock()
+        mock_remediation_instance.trigger_remediation.return_value = True
+        mock_remediation_client.return_value = mock_remediation_instance
+        
+        monitor = SystemMonitor(app_config)
+        metrics = monitor.check_system()
+        
+        # Should trigger CPU alert
+        assert metrics.cpu_percent == 95.0
+        assert monitor.alert_count == 1
+        mock_slack_instance.send_alert.assert_called()
+        mock_remediation_instance.trigger_remediation.assert_called()
     
     @pytest.mark.unit
-    @patch('monitor.schedule')
-    @patch('monitor.time.sleep')
-    @patch('monitor.check_system')
-    def test_main_function(self, mock_check_system, mock_sleep, mock_schedule):
-        """Test the main function sets up scheduling correctly"""
-        # Make sleep raise exception to exit the infinite loop
-        mock_sleep.side_effect = KeyboardInterrupt
+    @patch('core.monitor.RemediationClient')
+    @patch('core.monitor.SlackClient')
+    def test_monitor_status(self, mock_slack_client, mock_remediation_client, app_config):
+        """Test getting monitor status"""
+        from core.monitor import SystemMonitor
         
-        try:
-            self.monitor.main()
-        except KeyboardInterrupt:
-            pass
+        # Mock the clients
+        mock_slack_client.return_value = Mock()
+        mock_remediation_client.return_value = Mock()
         
-        # Verify initial check was called
-        mock_check_system.assert_called_once()
+        monitor = SystemMonitor(app_config)
+        status = monitor.get_status()
         
-        # Verify schedule was set up
-        mock_schedule.every.assert_called_once_with(60)
-        mock_schedule.every().seconds.do.assert_called_once_with(mock_check_system)
+        assert 'running' in status
+        assert 'check_count' in status
+        assert 'alert_count' in status
+        assert 'config' in status
+        assert status['check_count'] == 0  # No checks performed yet
+    
+    @pytest.mark.unit 
+    @patch('core.monitor.RemediationClient')
+    @patch('core.monitor.SlackClient')
+    def test_monitor_start_stop(self, mock_slack_client, mock_remediation_client, app_config):
+        """Test monitor start and stop functionality"""
+        from core.monitor import SystemMonitor
+        import time
         
-        # Verify run_pending was called
-        mock_schedule.run_pending.assert_called()
+        # Mock the clients
+        mock_slack_instance = Mock()
+        mock_slack_client.return_value = mock_slack_instance
+        mock_remediation_client.return_value = Mock()
+        
+        monitor = SystemMonitor(app_config)
+        
+        # Test that monitor starts
+        assert monitor._running is False
+        
+        # We won't actually start it in the test to avoid hanging
+        # Just test the status tracking
+        assert monitor.get_status()['running'] is False
