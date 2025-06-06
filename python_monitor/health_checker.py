@@ -119,7 +119,7 @@ class SystemHealthChecker:
 
                 if hasattr(os, "getloadavg"):
                     load_avg = os.getloadavg()
-            except:
+            except Exception as e:
                 pass
 
             # Determine health status
@@ -283,7 +283,7 @@ class ServiceHealthChecker:
                         },
                         duration_ms=duration_ms,
                     )
-                except:
+                except Exception:
                     # Response not JSON, but service is responding
                     return HealthStatus(
                         is_healthy=True,
