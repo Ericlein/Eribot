@@ -141,7 +141,6 @@ class TestCoreHealthFallbackLogic:
             try:
                 from health_checker import HealthStatus  # This might fail
 
-                print(HealthStatus.status)
             except ImportError as e:
                 # This is line 26 from the module
                 logging.warning(f"Warning: Could not import health_checker: {e}")
