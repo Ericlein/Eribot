@@ -347,11 +347,12 @@ jobs:
         docker buildx build -f docker/Dockerfile.python -t eribot-monitor:test .
         docker buildx build -f docker/Dockerfile.csharp -t eribot-remediator:test .
     
-    - name: Test installation scripts
-      run: |
-        # Test script syntax
-        bash -n scripts/install.sh
-        powershell -Command "Get-Content scripts/install.ps1 | ForEach-Object { \$_ }" > /dev/null
+    - name: Test bash script syntax
+      run: bash -n scripts/install.sh
+
+    - name: Test PowerShell script syntax
+      if: runner.os == 'Windows'
+      run: powershell -Command "Get-Content scripts/install.ps1 | ForEach-Object { \$_ }" > $null
 
   summary:
     runs-on: ubuntu-latest
