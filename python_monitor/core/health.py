@@ -17,20 +17,20 @@ try:
         HealthStatus,
         SystemHealthChecker,
         ServiceHealthChecker,
-        CompositeHealthChecker
+        CompositeHealthChecker,
     )
-    
+
     # Alias for consistency
     HealthChecker = CompositeHealthChecker
-    
+
 except ImportError as e:
-    logging.warning(f'Warning: Could not import health_checker: {e}')
-    
+    logging.warning(f"Warning: Could not import health_checker: {e}")
+
     # Fallback minimal implementation
     from dataclasses import dataclass
     from datetime import datetime
     from typing import Dict, Any
-    
+
     @dataclass
     class HealthStatus:
         is_healthy: bool
@@ -38,24 +38,25 @@ except ImportError as e:
         timestamp: datetime
         details: Dict[str, Any]
         duration_ms: float = 0.0
-    
+
     class HealthChecker:
         def __init__(self, *args, **kwargs):
             pass
-        
+
         def get_overall_health(self):
             return HealthStatus(
                 is_healthy=True,
-                status='health checker not available',
+                status="health checker not available",
                 timestamp=datetime.now(),
                 details={},
-                duration_ms=0.0
+                duration_ms=0.0,
             )
 
+
 __all__ = [
-    'HealthStatus',
-    'SystemHealthChecker', 
-    'ServiceHealthChecker',
-    'CompositeHealthChecker',
-    'HealthChecker',
+    "HealthStatus",
+    "SystemHealthChecker",
+    "ServiceHealthChecker",
+    "CompositeHealthChecker",
+    "HealthChecker",
 ]

@@ -6,18 +6,18 @@ Fixed version with correct imports.
 from .loader import ConfigLoader, load_config
 from .models import (
     AppConfig,
-    MonitoringConfig, 
+    MonitoringConfig,
     SlackConfig,
     RemediatorConfig,
-    LoggingConfig
+    LoggingConfig,
 )
 
 __all__ = [
     "ConfigLoader",
-    "load_config", 
+    "load_config",
     "AppConfig",
     "MonitoringConfig",
-    "SlackConfig", 
+    "SlackConfig",
     "RemediatorConfig",
     "LoggingConfig",
 ]

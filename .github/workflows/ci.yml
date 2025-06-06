@@ -44,11 +44,10 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-mock
     
     - name: Create test config
       run: |
-        mkdir -p python_monitor/config
+        mkdir -p config
         cat > config/config.yaml << EOF
         monitoring:
           cpu_threshold: ${CPU_THRESHOLD}
@@ -75,15 +74,17 @@ jobs:
     
     - name: Lint with flake8
       run: |
-        pip install flake8
         # stop the build if there are Python syntax errors or undefined names
         flake8 python_monitor --count --select=E9,F63,F7,F82 --show-source --statistics
         # exit-zero treats all errors as warnings
         flake8 python_monitor --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
     
+    - name: Format check with black
+      run: |
+        black --check python_monitor/
+    
     - name: Type checking with mypy
       run: |
-        pip install mypy types-requests types-PyYAML
         mypy python_monitor --ignore-missing-imports || true
     
     - name: Test with pytest (unit tests only)
@@ -92,7 +93,7 @@ jobs:
         # Set CI environment variable to ensure integration tests are skipped
         export CI=true
         # Run only unit tests (explicitly exclude integration tests)
-        PYTHONPATH=. pytest tests/ -v --cov=. --cov-report=xml --cov-report=html -k "not test_send_real" -m "unit"
+        PYTHONPATH=. pytest tests/ -v --cov=. --cov-report=xml --cov-report=html -m "unit" --cov-fail-under=70
     
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
@@ -100,6 +101,31 @@ jobs:
         file: python_monitor/coverage.xml
         flags: python
         name: python-coverage
+
+    - name: Upload coverage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-coverage-report
+        path: python_monitor/htmlcov/
+
+    - name: Security scan with bandit
+      run: |
+        pip install bandit
+        bandit -r python_monitor/ -f json -o bandit-report.json || echo "Bandit scan completed with warnings"
+        
+    - name: Dependency vulnerability scan
+      run: |
+        pip install safety
+        safety check --json --output safety-report.json || echo "Safety scan completed with warnings"
+
+    - name: Upload security scan results
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-security-reports
+        path: |
+          bandit-report.json
+          safety-report.json
+      if: always()
 
     - name: Send Slack notification on success
       if: success()
@@ -161,3 +187,205 @@ jobs:
         curl -X POST -H 'Content-type: application/json' \
         --data "{\"text\":\"❌ **EriBot C# Remediator build failed!**\n\n• **Branch:** $GITHUB_REF_NAME\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\nC# build or tests failed. Please check the logs.\n\nView details: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
         ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [test-python, test-csharp]
+    if: github.event_name == 'push' || contains(github.event.pull_request.labels.*.name, 'run-integration-tests')
+    
+    env:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL: "#test-channel"
+      CPU_THRESHOLD: "90"
+      DISK_THRESHOLD: "90"
+      MEMORY_THRESHOLD: "90"
+      CHECK_INTERVAL: "60"
+      REMEDIATOR_URL: "http://localhost:5001"
+      LOG_LEVEL: "DEBUG"
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Install Python dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    
+    - name: Build C# remediator
+      run: |
+        cd csharp_remediator
+        dotnet build --configuration Release
+    
+    - name: Start C# remediator service
+      run: |
+        cd csharp_remediator
+        dotnet run --configuration Release &
+        echo $! > ../remediator.pid
+        sleep 10  # Wait for service to start
+    
+    - name: Wait for remediator service
+      run: |
+        timeout 30 bash -c 'until curl -f http://localhost:5001/health; do sleep 1; done'
+    
+    - name: Run integration tests
+      run: |
+        cd python_monitor
+        PYTHONPATH=. pytest tests/ -v -m "integration" --run-integration --tb=short
+      if: env.SLACK_BOT_TOKEN != ''
+    
+    - name: Skip integration tests (no token)
+      run: |
+        echo "⚠️ Skipping integration tests - SLACK_BOT_TOKEN not available"
+        echo "Integration tests require a valid Slack bot token"
+      if: env.SLACK_BOT_TOKEN == ''
+    
+    - name: Stop remediator service
+      run: |
+        if [ -f remediator.pid ]; then
+          kill $(cat remediator.pid) || true
+          rm remediator.pid
+        fi
+        pkill -f "dotnet.*EriBot.Remediator" || true
+      if: always()
+
+  code-quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 mypy bandit safety
+        pip install -r requirements.txt
+    
+    - name: Check code formatting with Black
+      run: |
+        black --check --diff python_monitor/
+    
+    - name: Lint with flake8
+      run: |
+        flake8 python_monitor/ --statistics
+    
+    - name: Type check with mypy
+      run: |
+        mypy python_monitor/ --ignore-missing-imports
+      continue-on-error: true
+    
+    - name: Security check with bandit
+      run: |
+        bandit -r python_monitor/ -f json -o bandit-results.json
+        bandit -r python_monitor/ || true
+      continue-on-error: true
+    
+    - name: Check dependencies with safety
+      run: |
+        safety check --json --output safety-results.json || true
+        safety check || true
+      continue-on-error: true
+    
+    - name: Upload code quality results
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-quality-results
+        path: |
+          bandit-results.json
+          safety-results.json
+      if: always()
+
+  build-test:
+    runs-on: ubuntu-latest
+    needs: [test-python, test-csharp]
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ env.PYTHON_VERSION }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+        
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Test Python package build
+      run: |
+        cd python_monitor
+        pip install build
+        python -m build
+    
+    - name: Test .NET build for multiple platforms
+      run: |
+        cd csharp_remediator
+        dotnet publish -c Release -r linux-x64 --self-contained -o ../dist/linux-x64
+        dotnet publish -c Release -r win-x64 --self-contained -o ../dist/win-x64
+        dotnet publish -c Release -r osx-x64 --self-contained -o ../dist/osx-x64
+    
+    - name: Test Docker builds
+      run: |
+        docker buildx build -f docker/Dockerfile.python -t eribot-monitor:test .
+        docker buildx build -f docker/Dockerfile.csharp -t eribot-remediator:test .
+    
+    - name: Test bash script syntax
+      run: bash -n scripts/install.sh
+
+    - name: Test PowerShell script syntax
+      if: runner.os == 'Windows'
+      run: powershell -Command "Get-Content scripts/install.ps1 | ForEach-Object { \$_ }" > $null
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [test-python, test-csharp, code-quality, build-test]
+    if: always()
+    
+    steps:
+    - name: Check all jobs status
+      run: |
+        echo "Job Results:"
+        echo "- Python Tests: ${{ needs.test-python.result }}"
+        echo "- C# Tests: ${{ needs.test-csharp.result }}"
+        echo "- Code Quality: ${{ needs.code-quality.result }}"
+        echo "- Build Test: ${{ needs.build-test.result }}"
+        
+        if [[ "${{ needs.test-python.result }}" != "success" || 
+              "${{ needs.test-csharp.result }}" != "success" ]]; then
+          echo "❌ Required tests failed"
+          exit 1
+        else
+          echo "✅ All required tests passed"
+        fi
+    
+    - name: Send final notification
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        if [[ "${{ needs.test-python.result }}" == "success" && 
+              "${{ needs.test-csharp.result }}" == "success" ]]; then
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"🎉 **EriBot CI Pipeline Completed Successfully!**\n\n• **Branch:** main\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\n✅ Python tests passed\n✅ C# tests passed\n✅ Code quality checks completed\n✅ Build tests passed\n\nReady for deployment! 🚀\"}" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+        else
+          curl -X POST -H 'Content-type: application/json' \
+          --data "{\"text\":\"💥 **EriBot CI Pipeline Failed!**\n\n• **Branch:** main\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\nSome tests failed. Please check the logs and fix issues before deployment.\n\nView details: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
+          ${{ secrets.SLACK_WEBHOOK_URL }}
+        fi

@@ -10,7 +10,6 @@ RUN dotnet restore ./csharp_remediator/
 # Copy source and build
 COPY csharp_remediator/ ./csharp_remediator/
 RUN dotnet publish ./csharp_remediator/ -c Release -o /app/publish \
-    --no-restore \
     --self-contained false
 
 # Runtime stage  
