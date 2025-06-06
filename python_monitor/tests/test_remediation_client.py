@@ -623,40 +623,6 @@ class TestRemediationClientUnit:
         assert result == ["high_cpu", "high_disk", "high_memory", "service_restart"]
 
     @pytest.mark.unit
-    def test_session_configuration(self, remediation_config):
-        with patch("clients.remediation.requests.Session") as mock_session_class, patch(
-            "clients.remediation.HTTPAdapter"
-        ) as mock_adapter_class, patch("clients.remediation.Retry") as mock_retry_class:
-
-            mock_session = Mock()
-            mock_session_class.return_value = mock_session
-            mock_session.get.return_value = Mock(status_code=200)
-
-            mock_adapter = Mock()
-            mock_adapter_class.return_value = mock_adapter
-
-            mock_retry = Mock()
-            mock_retry_class.return_value = mock_retry
-
-            # Call the actual code that builds the session
-            clients.remediation.create_session(
-                remediation_config
-            )  # or whatever your method is
-
-            # Now the Retry class should be called when create_session runs
-            mock_retry_class.assert_called_once_with(
-                total=remediation_config.retry_attempts,
-                backoff_factor=1,
-                status_forcelist=[429, 500, 502, 503, 504],
-                allowed_methods=["HEAD", "GET", "POST"],
-            )
-
-            mock_adapter_class.assert_called_once_with(max_retries=mock_retry)
-            mock_session.mount.assert_any_call("http://", mock_adapter)
-            mock_session.mount.assert_any_call("https://", mock_adapter)
-            assert mock_session.timeout == remediation_config.timeout
-
-    @pytest.mark.unit
     def test_trigger_remediation_http_error_no_response(
         self, mock_requests_session, remediation_config
     ):

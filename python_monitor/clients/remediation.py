@@ -49,11 +49,6 @@ class EriTimeoutError(Exception):
 class RemediationClient:
     """Client for communicating with the C# remediation service."""
 
-    # Redundant but need it for test
-    def create_session(self):
-        self.session = requests.Session()
-        return self.session
-
     def __init__(self, config: RemediatorConfig):
         self.config = config
         self.logger = get_logger("remediation_client")
