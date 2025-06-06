@@ -5,9 +5,8 @@ This targets the uncovered lines 12, 26-47
 
 import pytest
 import sys
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from datetime import datetime
-import importlib
 
 
 class TestCoreHealthFallbackLogic:
@@ -39,7 +38,6 @@ class TestCoreHealthFallbackLogic:
         """Test creating the fallback HealthStatus"""
         # Import the fallback implementation components
         from dataclasses import dataclass
-        from datetime import datetime
         from typing import Dict, Any
 
         # This is the exact fallback implementation from the module
@@ -99,7 +97,6 @@ class TestCoreHealthFallbackLogic:
         """Test the fallback get_overall_health method"""
         # This tests lines 45-53
         from dataclasses import dataclass
-        from datetime import datetime
         from typing import Dict, Any
 
         @dataclass
@@ -143,6 +140,7 @@ class TestCoreHealthFallbackLogic:
             # Simulate the exact scenario from the module
             try:
                 from health_checker import HealthStatus  # This might fail
+                print(HealthStatus.status)
             except ImportError as e:
                 # This is line 26 from the module
                 logging.warning(f"Warning: Could not import health_checker: {e}")
@@ -207,7 +205,6 @@ class TestCoreHealthFallbackLogic:
         """Test the sys.path insertion logic"""
         # This tests the path manipulation code (lines 7-11)
         from pathlib import Path
-        import sys
 
         # Simulate the module's path logic
         current_dir = Path(__file__).parent
@@ -246,7 +243,6 @@ class TestCoreHealthFallbackLogic:
     def test_datetime_import_in_fallback(self):
         """Test datetime import in fallback scenario"""
         # This ensures line 30 is covered
-        from datetime import datetime
 
         # Test that datetime works as expected in fallback
         now = datetime.now()

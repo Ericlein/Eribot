@@ -5,7 +5,7 @@ This module is a wrapper that handles imports with fallbacks
 
 import pytest
 import sys
-from unittest.mock import patch, Mock
+from unittest.mock import patch
 from datetime import datetime
 from pathlib import Path
 
@@ -273,7 +273,6 @@ class TestCoreHealthIntegration:
         # We can verify this by checking that the import worked
 
         from core.health import HealthStatus
-        from pathlib import Path
 
         # If we can import HealthStatus, the path modification worked
         assert HealthStatus is not None
@@ -294,7 +293,6 @@ class TestCoreHealthIntegration:
     @pytest.mark.unit
     def test_sys_path_logic(self):
         """Test the sys.path manipulation logic"""
-        import sys
         from pathlib import Path
 
         # This tests the same logic used in the module

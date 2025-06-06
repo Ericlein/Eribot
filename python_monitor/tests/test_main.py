@@ -47,7 +47,7 @@ class TestMainSimple:
                 mock_mem.return_value.total = 16 * 1024**3
 
                 # Should exit cleanly with KeyboardInterrupt
-                with pytest.raises(SystemExit) as exc_info:
+                with pytest.raises(SystemExit):
                     main.main()
 
                 # Verify config was loaded

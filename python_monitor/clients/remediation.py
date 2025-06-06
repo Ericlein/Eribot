@@ -9,15 +9,13 @@ from typing import Dict, Any, Optional, List
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from config.models import RemediatorConfig
 
 # Add parent directory to path for imports during transition
 current_dir = Path(__file__).parent
 parent_dir = current_dir.parent
 if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
-
-# Now import local modules after path setup
-from config.models import RemediatorConfig
 
 
 def get_logger(name):

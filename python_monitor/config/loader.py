@@ -9,6 +9,13 @@ import sys
 import logging
 from typing import Optional
 from pathlib import Path
+from .models import (
+    AppConfig,
+    MonitoringConfig,
+    SlackConfig,
+    RemediatorConfig,
+    LoggingConfig,
+)
 
 # Add parent directory to path for imports during transition
 current_dir = Path(__file__).parent
@@ -40,14 +47,6 @@ except ImportError:
     logging.warning(
         "python-dotenv not available - using system environment variables only"
     )
-
-from .models import (
-    AppConfig,
-    MonitoringConfig,
-    SlackConfig,
-    RemediatorConfig,
-    LoggingConfig,
-)
 
 
 # Use fallback logging and exceptions during transition

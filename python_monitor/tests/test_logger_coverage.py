@@ -6,7 +6,6 @@ import pytest
 import logging
 import os
 from unittest.mock import patch, Mock
-from pathlib import Path
 
 # Import the logger module
 from utils.logger import get_logger, setup_logging, log_system_info

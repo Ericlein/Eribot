@@ -1,5 +1,5 @@
 [flake8]
-max-line-length = 100
+max-line-length = 120
 exclude = 
     .git,
     __pycache__,
@@ -11,6 +11,7 @@ exclude =
     *.egg,
     htmlcov,
     .pytest_cache
+    python_monitor/test_env,
 ignore = 
     E203,  # whitespace before ':'
     W503,  # line break before binary operator

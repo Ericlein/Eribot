@@ -1,9 +1,7 @@
 import pytest
 import requests
-import time
-from unittest.mock import patch, Mock, MagicMock
+from unittest.mock import patch, Mock
 from datetime import datetime
-import socket
 
 
 # Add unit test versions of integration tests that don't require external services
@@ -42,7 +40,6 @@ class TestIntegrationUnit:
         """Unit test for complete monitoring flow"""
         from core.monitor import SystemMonitor
         from core.monitor import SystemMetrics
-        from datetime import datetime
 
         # Mock the client classes to return mock instances
         mock_slack_instance = Mock()

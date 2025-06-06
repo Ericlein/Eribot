@@ -171,8 +171,6 @@ def setup_logging(
 
 def log_system_info(logger: logging.Logger):
     """Log system information at startup"""
-    import platform
-    import psutil
 
     logger.info("=" * 50)
     logger.info("EriBot System Information")

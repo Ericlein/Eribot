@@ -5,7 +5,8 @@ EriBot System Monitor Entry Point
 This is the main entry point for the EriBot monitoring service.
 Replaces the global execution in the old monitor.py.
 """
-
+from core.monitor import SystemMonitor
+from config import load_config
 import sys
 import signal
 from pathlib import Path
@@ -15,10 +16,6 @@ from typing import Optional
 current_dir = Path(__file__).parent
 if str(current_dir) not in sys.path:
     sys.path.insert(0, str(current_dir))
-
-# Use relative imports for the new structure
-from core.monitor import SystemMonitor
-from config import load_config
 
 
 def get_logger(name):

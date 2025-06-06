@@ -5,9 +5,7 @@ This should bring the coverage up to 80%+
 
 import pytest
 import requests
-from unittest.mock import Mock, patch, MagicMock
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+from unittest.mock import Mock, patch
 
 # Import the classes we're testing
 from clients.remediation import (
@@ -639,8 +637,6 @@ class TestRemediationClientUnit:
 
             mock_retry = Mock()
             mock_retry_class.return_value = mock_retry
-
-            client = RemediationClient(remediation_config)
 
             # Verify retry strategy was configured
             mock_retry_class.assert_called_once_with(

@@ -6,7 +6,9 @@ import socket
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Dict, Any
-
+from config.models import AppConfig
+from clients.slack import SlackClient
+from clients.remediation import RemediationClient
 import sys
 from pathlib import Path
 
@@ -15,10 +17,6 @@ current_dir = Path(__file__).parent
 parent_dir = current_dir.parent
 if str(parent_dir) not in sys.path:
     sys.path.insert(0, str(parent_dir))
-
-from config.models import AppConfig
-from clients.slack import SlackClient
-from clients.remediation import RemediationClient
 
 
 def get_logger(name):

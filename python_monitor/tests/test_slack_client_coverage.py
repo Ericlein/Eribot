@@ -4,8 +4,7 @@ Targets specific uncovered lines: 10, 50-51, 57, 63-71, 105-123, 126, 129, 132, 
 """
 
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-import os
+from unittest.mock import patch, MagicMock
 from slack_sdk.errors import SlackApiError
 
 from clients.slack import SlackClient, SlackError, AuthenticationError, RateLimitError
