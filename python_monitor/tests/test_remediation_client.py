@@ -639,7 +639,7 @@ class TestRemediationClientUnit:
             mock_retry_class.return_value = mock_retry
 
             # Call the actual code that builds the session
-            clients.remediation.create_session(
+            clients.remediation.session(
                 remediation_config
             )  # or whatever your method is
 
