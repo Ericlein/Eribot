@@ -121,7 +121,7 @@ class SystemHealthChecker:
 
                 if hasattr(os, "getloadavg"):
                     load_avg = os.getloadavg()
-            except Exception:
+            except Exception as e:
                 pass
 
             # Determine health status
