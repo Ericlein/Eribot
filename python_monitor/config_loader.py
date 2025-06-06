@@ -92,7 +92,7 @@ class ConfigLoader:
             # Load monitoring config with env var overrides
             monitoring_yaml = yaml_config.get('monitoring', {})
             monitoring_config = MonitoringConfig(
-                cpu_threshold=int(os.getenv('CPU_THRESHOLD', monitoring_yaml.get('cpu_threshold', 85))),
+                cpu_threshold=int(os.getenv('CPU_THRESHOLD', monitoring_yaml.get('cpu_threshold', 90))),
                 disk_threshold=int(os.getenv('DISK_THRESHOLD', monitoring_yaml.get('disk_threshold', 90))),
                 memory_threshold=int(os.getenv('MEMORY_THRESHOLD', monitoring_yaml.get('memory_threshold', 90))),
                 check_interval=int(os.getenv('CHECK_INTERVAL', monitoring_yaml.get('check_interval', 60)))

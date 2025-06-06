@@ -1,5 +1,5 @@
 monitoring:
-  cpu_threshold: 85      # Can be overridden by env var
+  cpu_threshold: 90      # Can be overridden by env var
   disk_threshold: 90
   memory_threshold: 90
   check_interval: 60

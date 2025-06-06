@@ -251,7 +251,7 @@ class TestConfigValidator:
     def test_validate_monitoring_config_valid(self, validator):
         """Test valid monitoring configuration validation"""
         config = {
-            "cpu_threshold": 85,
+            "cpu_threshold": 90,
             "disk_threshold": 90,
             "check_interval": 60,
             "memory_threshold": 85
@@ -286,7 +286,7 @@ class TestConfigValidator:
         """Test full configuration validation"""
         config = {
             "monitoring": {
-                "cpu_threshold": 85,
+                "cpu_threshold": 90,
                 "disk_threshold": 90,
                 "check_interval": 60
             },

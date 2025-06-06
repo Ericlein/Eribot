@@ -23,7 +23,7 @@ def mock_env_vars():
     env_vars = {
         'SLACK_BOT_TOKEN': 'xoxb-test-token-123456789-123456789-abcdefghijklmnopqrstuvwx',
         'SLACK_CHANNEL': '#test-alerts',
-        'CPU_THRESHOLD': '85',
+        'CPU_THRESHOLD': '90',
         'DISK_THRESHOLD': '90',
         'CHECK_INTERVAL': '60',
         'REMEDIATOR_URL': 'http://localhost:5001',
@@ -39,7 +39,7 @@ def test_config():
     """Create a test configuration dictionary"""
     return {
         'monitoring': {
-            'cpu_threshold': 85,
+            'cpu_threshold': 90,
             'disk_threshold': 90,
             'memory_threshold': 90,
             'check_interval': 60
@@ -80,7 +80,7 @@ def slack_config():
 def monitoring_config():
     """Create a test monitoring configuration"""
     return MonitoringConfig(
-        cpu_threshold=85,
+        cpu_threshold=90,
         disk_threshold=90,
         check_interval=60
     )

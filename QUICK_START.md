@@ -36,7 +36,7 @@ curl -fsSL https://raw.githubusercontent.com/your-repo/eribot/main/install.sh | 
 cat > .env << EOF
 SLACK_BOT_TOKEN=xoxb-your-token-here
 SLACK_CHANNEL=#devops-alerts
-CPU_THRESHOLD=85
+CPU_THRESHOLD=90
 DISK_THRESHOLD=90
 CHECK_INTERVAL=60
 EOF
@@ -92,7 +92,7 @@ curl http://localhost:5001/health
 ### Basic Configuration (`config/config.yaml`)
 ```yaml
 monitoring:
-  cpu_threshold: 85      # CPU % to trigger alert
+  cpu_threshold: 90      # CPU % to trigger alert
   disk_threshold: 90     # Disk % to trigger alert  
   check_interval: 60     # Check every 60 seconds
 
@@ -110,8 +110,8 @@ SLACK_BOT_TOKEN=xoxb-your-bot-token
 
 # Optional overrides
 SLACK_CHANNEL=#your-channel
-CPU_THRESHOLD=80
-DISK_THRESHOLD=85
+CPU_THRESHOLD=90
+DISK_THRESHOLD=90
 CHECK_INTERVAL=30
 REMEDIATOR_URL=http://localhost:5001/remediate
 ```

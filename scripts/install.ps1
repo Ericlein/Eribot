@@ -79,7 +79,7 @@ pytest==7.4.0
 # Create configuration file
 @"
 monitoring:
-  cpu_threshold: 85
+  cpu_threshold: 90
   disk_threshold: 90
   check_interval: 60
 
@@ -94,7 +94,7 @@ remediator:
 @"
 SLACK_BOT_TOKEN=$SlackToken
 SLACK_CHANNEL=$SlackChannel
-CPU_THRESHOLD=85
+CPU_THRESHOLD=90
 DISK_THRESHOLD=90
 CHECK_INTERVAL=60
 REMEDIATOR_URL=http://localhost:5001/remediate

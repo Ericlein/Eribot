@@ -17,7 +17,7 @@ jobs:
     env:
       SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
       SLACK_CHANNEL: "#test-channel"
-      CPU_THRESHOLD: "85"
+      CPU_THRESHOLD: "90"
       DISK_THRESHOLD: "90"
       MEMORY_THRESHOLD: "90"
       CHECK_INTERVAL: "60"
