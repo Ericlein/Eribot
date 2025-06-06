@@ -30,7 +30,9 @@ def validate_slack_token(token):
 
     # Bot tokens should start with xoxb-
     if not token.startswith("xoxb-"):
-        raise ValidationError("Invalid Slack token format. Bot tokens must start with 'xoxb-'")
+        raise ValidationError(
+            "Invalid Slack token format. Bot tokens must start with 'xoxb-'"
+        )
 
     # Allow test tokens (more permissive for testing)
     if token.startswith("xoxb-test-"):
@@ -49,7 +51,9 @@ def validate_slack_token(token):
         int(parts[1])  # team_id should be numeric
         int(parts[2])  # bot_id should be numeric
     except (ValueError, IndexError):
-        raise ValidationError("Invalid Slack token format. Team ID and Bot ID must be numeric")
+        raise ValidationError(
+            "Invalid Slack token format. Team ID and Bot ID must be numeric"
+        )
 
     # Check that the secret part exists and has reasonable length
     if len(parts) < 4 or len(parts[3]) < 20:
@@ -227,7 +231,9 @@ def validate_hostname(hostname):
     return True
 
 
-def validate_config_section(config_dict, section_name, required_fields=None, optional_fields=None):
+def validate_config_section(
+    config_dict, section_name, required_fields=None, optional_fields=None
+):
     """
     Validate a configuration section.
 
@@ -274,13 +280,17 @@ def validate_config_section(config_dict, section_name, required_fields=None, opt
                 validate_threshold(value)
             elif field == "check_interval":
                 if not isinstance(value, (int, float)) or value <= 0:
-                    raise ValidationError(f"Check interval must be a positive number, got {value}")
+                    raise ValidationError(
+                        f"Check interval must be a positive number, got {value}"
+                    )
         elif section_name == "remediator":
             if field == "url":
                 validate_url(value)
             elif field in ["timeout", "retry_attempts"]:
                 if not isinstance(value, (int, float)) or value <= 0:
-                    raise ValidationError(f"{field} must be a positive number, got {value}")
+                    raise ValidationError(
+                        f"{field} must be a positive number, got {value}"
+                    )
 
     return True
 
@@ -304,10 +314,18 @@ def validate_complete_config(config):
     # Validate each section
     sections = {
         "monitoring": {
-            "required": ["cpu_threshold", "memory_threshold", "disk_threshold", "check_interval"],
+            "required": [
+                "cpu_threshold",
+                "memory_threshold",
+                "disk_threshold",
+                "check_interval",
+            ],
             "optional": [],
         },
-        "slack": {"required": ["channel"], "optional": ["token", "username", "icon_emoji"]},
+        "slack": {
+            "required": ["channel"],
+            "optional": ["token", "username", "icon_emoji"],
+        },
         "remediator": {"required": ["url"], "optional": ["timeout", "retry_attempts"]},
         "logging": {
             "required": [],
@@ -318,7 +336,10 @@ def validate_complete_config(config):
     for section_name, field_info in sections.items():
         if section_name in config:
             validate_config_section(
-                config[section_name], section_name, field_info["required"], field_info["optional"]
+                config[section_name],
+                section_name,
+                field_info["required"],
+                field_info["optional"],
             )
 
     return True

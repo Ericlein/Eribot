@@ -86,7 +86,9 @@ class RateLimitError(ErioBotException):
         if retry_after:
             message += f". Retry after {retry_after} seconds"
 
-        super().__init__(message, details={"service": service, "retry_after": retry_after})
+        super().__init__(
+            message, details={"service": service, "retry_after": retry_after}
+        )
 
 
 class AuthenticationError(ErioBotException):

@@ -180,9 +180,13 @@ class TestIntegrationUnit:
         ) as mock_socket:
 
             # Setup mocks
-            mock_memory.return_value = Mock(percent=60.0, available=8 * 1024**3, total=16 * 1024**3)
+            mock_memory.return_value = Mock(
+                percent=60.0, available=8 * 1024**3, total=16 * 1024**3
+            )
             mock_swap.return_value = Mock(percent=30.0)
-            mock_disk.return_value = Mock(percent=70.0, free=100 * 1024**3, total=500 * 1024**3)
+            mock_disk.return_value = Mock(
+                percent=70.0, free=100 * 1024**3, total=500 * 1024**3
+            )
 
             # Mock socket for network check
             mock_socket_instance = Mock()
@@ -216,7 +220,9 @@ class TestIntegrationUnit:
     @pytest.mark.unit
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_config_integration_unit(self, mock_remediation_client, mock_slack_client, app_config):
+    def test_config_integration_unit(
+        self, mock_remediation_client, mock_slack_client, app_config
+    ):
         """Unit test for configuration integration"""
         from core.monitor import SystemMonitor
 
@@ -259,7 +265,9 @@ class TestIntegration:
     @pytest.mark.integration
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_end_to_end_monitoring(self, mock_remediation_client, mock_slack_client, app_config):
+    def test_end_to_end_monitoring(
+        self, mock_remediation_client, mock_slack_client, app_config
+    ):
         """Test complete monitoring flow"""
         pytest.skip("Integration test - requires external service")
 
@@ -276,7 +284,9 @@ class TestIntegration:
     @pytest.mark.slow
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_monitoring_loop(self, mock_remediation_client, mock_slack_client, app_config):
+    def test_monitoring_loop(
+        self, mock_remediation_client, mock_slack_client, app_config
+    ):
         """Test monitoring loop for a short duration"""
         pytest.skip("Integration test - requires external service")
 
@@ -288,6 +298,8 @@ class TestIntegration:
     @pytest.mark.integration
     @patch("core.monitor.SlackClient")
     @patch("core.monitor.RemediationClient")
-    def test_config_integration(self, mock_remediation_client, mock_slack_client, app_config):
+    def test_config_integration(
+        self, mock_remediation_client, mock_slack_client, app_config
+    ):
         """Test that configuration integrates properly with monitor"""
         pytest.skip("Integration test - requires external service")

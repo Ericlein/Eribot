@@ -35,11 +35,17 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_slack_client_config_attribute_access(self, mock_webclient_class, slack_config):
+    def test_slack_client_config_attribute_access(
+        self, mock_webclient_class, slack_config
+    ):
         """Test accessing config attributes (lines 50-51)"""
         # Mock successful WebClient
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         client = SlackClient(slack_config)
@@ -56,7 +62,11 @@ class TestSlackClientCoverageBoost:
         """Test accessing auth test response data (lines 57, 63-71)"""
         # Mock WebClient with detailed auth response
         mock_client_instance = MagicMock()
-        mock_auth_response = {"ok": True, "user": "test_bot_user", "team": "test_team_name"}
+        mock_auth_response = {
+            "ok": True,
+            "user": "test_bot_user",
+            "team": "test_team_name",
+        }
         mock_client_instance.auth_test.return_value = mock_auth_response
         mock_webclient_class.return_value = mock_client_instance
 
@@ -69,7 +79,9 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_slack_api_error_handling_in_test_connection(self, mock_webclient_class, slack_config):
+    def test_slack_api_error_handling_in_test_connection(
+        self, mock_webclient_class, slack_config
+    ):
         """Test SlackApiError handling in _test_connection (lines 63-71)"""
         mock_client_instance = MagicMock()
         mock_webclient_class.return_value = mock_client_instance
@@ -86,11 +98,17 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_slack_api_error_rate_limited_in_send_message(self, mock_webclient_class, slack_config):
+    def test_slack_api_error_rate_limited_in_send_message(
+        self, mock_webclient_class, slack_config
+    ):
         """Test rate_limited error in send_message (lines 126)"""
         # Mock successful client creation first
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         # Create client successfully
@@ -107,11 +125,17 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_slack_api_error_invalid_auth_in_send_message(self, mock_webclient_class, slack_config):
+    def test_slack_api_error_invalid_auth_in_send_message(
+        self, mock_webclient_class, slack_config
+    ):
         """Test invalid_auth error in send_message (lines 132)"""
         # Mock successful client creation first
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         # Create client successfully
@@ -137,7 +161,9 @@ class TestSlackClientCoverageBoost:
 
         # Test other error
         error_response = {"error": "some_other_error"}
-        mock_client_instance.auth_test.side_effect = SlackApiError("Other error", error_response)
+        mock_client_instance.auth_test.side_effect = SlackApiError(
+            "Other error", error_response
+        )
 
         with pytest.raises(SlackError):
             SlackClient(slack_config)
@@ -148,7 +174,11 @@ class TestSlackClientCoverageBoost:
         """Test emoji mapping in send_message (lines 105-123)"""
         # Mock successful client
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_client_instance.chat_postMessage.return_value = {"ok": True}
         mock_webclient_class.return_value = mock_client_instance
 
@@ -172,11 +202,17 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_send_message_channel_not_found_error(self, mock_webclient_class, slack_config):
+    def test_send_message_channel_not_found_error(
+        self, mock_webclient_class, slack_config
+    ):
         """Test channel_not_found error in send_message (lines 129)"""
         # Mock successful client creation
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         # Mock channel not found error
@@ -202,7 +238,11 @@ class TestSlackClientCoverageBoost:
         """Test other SlackApiError in send_message (lines 135)"""
         # Mock successful client creation
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         # Mock other slack error
@@ -218,15 +258,23 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_send_message_unexpected_exception(self, mock_webclient_class, slack_config):
+    def test_send_message_unexpected_exception(
+        self, mock_webclient_class, slack_config
+    ):
         """Test unexpected exception in send_message (lines 139-140)"""
         # Mock successful client creation
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         # Mock unexpected exception
-        mock_client_instance.chat_postMessage.side_effect = Exception("Unexpected error")
+        mock_client_instance.chat_postMessage.side_effect = Exception(
+            "Unexpected error"
+        )
 
         client = SlackClient(slack_config)
 
@@ -239,7 +287,11 @@ class TestSlackClientCoverageBoost:
         """Test the helper methods (send_alert, send_success_message, send_error_message)"""
         # Mock successful client
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_client_instance.chat_postMessage.return_value = {"ok": True}
         mock_webclient_class.return_value = mock_client_instance
 
@@ -252,11 +304,17 @@ class TestSlackClientCoverageBoost:
 
     @pytest.mark.unit
     @patch("clients.slack.WebClient")
-    def test_test_connection_method_standalone(self, mock_webclient_class, slack_config):
+    def test_test_connection_method_standalone(
+        self, mock_webclient_class, slack_config
+    ):
         """Test the standalone test_connection method"""
         # Mock successful client
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         client = SlackClient(slack_config)
@@ -276,7 +334,11 @@ class TestSlackClientCoverageBoost:
         """Test send_message with custom channel parameter"""
         # Mock successful client
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_client_instance.chat_postMessage.return_value = {"ok": True}
         mock_webclient_class.return_value = mock_client_instance
 
@@ -296,11 +358,18 @@ class TestSlackClientCoverageBoost:
         """Test send_message when response is not ok"""
         # Mock successful client creation
         mock_client_instance = MagicMock()
-        mock_client_instance.auth_test.return_value = {"ok": True, "user": "test", "team": "test"}
+        mock_client_instance.auth_test.return_value = {
+            "ok": True,
+            "user": "test",
+            "team": "test",
+        }
         mock_webclient_class.return_value = mock_client_instance
 
         # Mock response that's not ok
-        mock_client_instance.chat_postMessage.return_value = {"ok": False, "error": "some_error"}
+        mock_client_instance.chat_postMessage.return_value = {
+            "ok": False,
+            "error": "some_error",
+        }
 
         client = SlackClient(slack_config)
         result = client.send_message("Test message")

@@ -26,7 +26,9 @@ class TestRemediationClientUnit:
     @pytest.fixture
     def remediation_config(self):
         """Create a test remediation configuration"""
-        return RemediatorConfig(url="http://localhost:5001", timeout=30, retry_attempts=3)
+        return RemediatorConfig(
+            url="http://localhost:5001", timeout=30, retry_attempts=3
+        )
 
     @pytest.fixture
     def mock_requests_session(self):
@@ -37,7 +39,9 @@ class TestRemediationClientUnit:
             yield mock_session
 
     @pytest.mark.unit
-    def test_remediation_client_creation_success(self, mock_requests_session, remediation_config):
+    def test_remediation_client_creation_success(
+        self, mock_requests_session, remediation_config
+    ):
         """Test successful RemediationClient creation"""
         # Mock successful health check
         mock_response = Mock()
@@ -94,7 +98,9 @@ class TestRemediationClientUnit:
         result = client._test_connection()
 
         assert result is True
-        mock_requests_session.get.assert_called_with(f"{remediation_config.url}/health", timeout=5)
+        mock_requests_session.get.assert_called_with(
+            f"{remediation_config.url}/health", timeout=5
+        )
 
     @pytest.mark.unit
     def test_test_connection_failure(self, mock_requests_session, remediation_config):
@@ -123,7 +129,9 @@ class TestRemediationClientUnit:
         assert result is False
 
     @pytest.mark.unit
-    def test_trigger_remediation_success_new_api(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_success_new_api(
+        self, mock_requests_session, remediation_config
+    ):
         """Test successful remediation trigger using new API endpoint"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -220,7 +228,9 @@ class TestRemediationClientUnit:
         assert result is True
 
     @pytest.mark.unit
-    def test_trigger_remediation_failure_response(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_failure_response(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with failure response"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -239,18 +249,24 @@ class TestRemediationClientUnit:
 
         client = RemediationClient(remediation_config)
 
-        with pytest.raises(RemediationError, match="Remediation failed: Invalid parameters"):
+        with pytest.raises(
+            RemediationError, match="Remediation failed: Invalid parameters"
+        ):
             client.trigger_remediation("invalid_type")
 
     @pytest.mark.unit
-    def test_trigger_remediation_timeout(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_timeout(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with timeout"""
         # Mock successful health check
         mock_health_response = Mock()
         mock_health_response.status_code = 200
 
         mock_requests_session.get.return_value = mock_health_response
-        mock_requests_session.post.side_effect = requests.exceptions.Timeout("Request timed out")
+        mock_requests_session.post.side_effect = requests.exceptions.Timeout(
+            "Request timed out"
+        )
 
         client = RemediationClient(remediation_config)
 
@@ -258,7 +274,9 @@ class TestRemediationClientUnit:
             client.trigger_remediation("high_cpu")
 
     @pytest.mark.unit
-    def test_trigger_remediation_connection_error(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_connection_error(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with connection error"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -277,7 +295,9 @@ class TestRemediationClientUnit:
             client.trigger_remediation("high_cpu")
 
     @pytest.mark.unit
-    def test_trigger_remediation_http_error_400(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_http_error_400(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with HTTP 400 error"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -297,7 +317,9 @@ class TestRemediationClientUnit:
             client.trigger_remediation("high_cpu")
 
     @pytest.mark.unit
-    def test_trigger_remediation_http_error_404(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_http_error_404(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with HTTP 404 error on both endpoints"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -317,7 +339,9 @@ class TestRemediationClientUnit:
             client.trigger_remediation("unknown_type")
 
     @pytest.mark.unit
-    def test_trigger_remediation_http_error_503(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_http_error_503(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with HTTP 503 error"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -352,11 +376,15 @@ class TestRemediationClientUnit:
 
         client = RemediationClient(remediation_config)
 
-        with pytest.raises(RemediationError, match="Unexpected error during remediation"):
+        with pytest.raises(
+            RemediationError, match="Unexpected error during remediation"
+        ):
             client.trigger_remediation("high_cpu")
 
     @pytest.mark.unit
-    def test_trigger_remediation_with_context(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_with_context(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with full context"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -393,7 +421,9 @@ class TestRemediationClientUnit:
         assert json_data["hostname"] == "test-server"
 
     @pytest.mark.unit
-    def test_get_service_status_success_new_api(self, mock_requests_session, remediation_config):
+    def test_get_service_status_success_new_api(
+        self, mock_requests_session, remediation_config
+    ):
         """Test successful service status retrieval using new API"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -408,7 +438,10 @@ class TestRemediationClientUnit:
             "version": "2.0.0",
         }
 
-        mock_requests_session.get.side_effect = [mock_health_response, mock_status_response]
+        mock_requests_session.get.side_effect = [
+            mock_health_response,
+            mock_status_response,
+        ]
 
         client = RemediationClient(remediation_config)
         result = client.get_service_status()
@@ -418,7 +451,9 @@ class TestRemediationClientUnit:
         assert result["version"] == "2.0.0"
 
     @pytest.mark.unit
-    def test_get_service_status_fallback_to_legacy(self, mock_requests_session, remediation_config):
+    def test_get_service_status_fallback_to_legacy(
+        self, mock_requests_session, remediation_config
+    ):
         """Test service status retrieval falling back to legacy API"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -430,7 +465,10 @@ class TestRemediationClientUnit:
 
         mock_legacy_response = Mock()
         mock_legacy_response.status_code = 200
-        mock_legacy_response.json.return_value = {"status": "running", "version": "1.0.0"}
+        mock_legacy_response.json.return_value = {
+            "status": "running",
+            "version": "1.0.0",
+        }
 
         # Health check, then new API (404), then legacy API (success)
         mock_requests_session.get.side_effect = [
@@ -446,7 +484,9 @@ class TestRemediationClientUnit:
         assert result["version"] == "1.0.0"
 
     @pytest.mark.unit
-    def test_get_service_status_all_endpoints_fail(self, mock_requests_session, remediation_config):
+    def test_get_service_status_all_endpoints_fail(
+        self, mock_requests_session, remediation_config
+    ):
         """Test service status when all endpoints fail"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -467,7 +507,9 @@ class TestRemediationClientUnit:
             client.get_service_status()
 
     @pytest.mark.unit
-    def test_get_service_status_request_exception(self, mock_requests_session, remediation_config):
+    def test_get_service_status_request_exception(
+        self, mock_requests_session, remediation_config
+    ):
         """Test service status with request exception"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -484,7 +526,9 @@ class TestRemediationClientUnit:
             client.get_service_status()
 
     @pytest.mark.unit
-    def test_get_available_actions_success_new_api(self, mock_requests_session, remediation_config):
+    def test_get_available_actions_success_new_api(
+        self, mock_requests_session, remediation_config
+    ):
         """Test successful available actions retrieval using new API"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -497,7 +541,10 @@ class TestRemediationClientUnit:
             "actions": ["high_cpu", "high_disk", "high_memory", "service_restart"]
         }
 
-        mock_requests_session.get.side_effect = [mock_health_response, mock_actions_response]
+        mock_requests_session.get.side_effect = [
+            mock_health_response,
+            mock_actions_response,
+        ]
 
         client = RemediationClient(remediation_config)
         result = client.get_available_actions()
@@ -685,7 +732,9 @@ class TestRemediationClientUnit:
             client.trigger_remediation("high_cpu")
 
     @pytest.mark.unit
-    def test_trigger_remediation_with_none_context(self, mock_requests_session, remediation_config):
+    def test_trigger_remediation_with_none_context(
+        self, mock_requests_session, remediation_config
+    ):
         """Test remediation trigger with None context"""
         # Mock successful health check
         mock_health_response = Mock()
@@ -744,7 +793,9 @@ class TestRemediationClientUnit:
         # Mock response that's 200 but can't be decoded as JSON
         mock_remediation_response = Mock()
         mock_remediation_response.status_code = 200
-        mock_remediation_response.json.side_effect = ValueError("No JSON object could be decoded")
+        mock_remediation_response.json.side_effect = ValueError(
+            "No JSON object could be decoded"
+        )
         mock_remediation_response.text = "Remediation completed successfully"
         mock_remediation_response.raise_for_status.return_value = None  # No exception
 
@@ -805,7 +856,10 @@ class TestRemediationClientUnit:
         mock_actions_response.json.return_value = {"status": "ok"}  # No 'actions' key
         mock_actions_response.raise_for_status.return_value = None
 
-        mock_requests_session.get.side_effect = [mock_health_response, mock_actions_response]
+        mock_requests_session.get.side_effect = [
+            mock_health_response,
+            mock_actions_response,
+        ]
 
         client = RemediationClient(remediation_config)
         result = client.get_available_actions()

@@ -4,7 +4,13 @@ Tests for configuration models
 
 import pytest
 
-from config.models import MonitoringConfig, SlackConfig, RemediatorConfig, LoggingConfig, AppConfig
+from config.models import (
+    MonitoringConfig,
+    SlackConfig,
+    RemediatorConfig,
+    LoggingConfig,
+    AppConfig,
+)
 
 
 class TestConfigModels:
@@ -25,7 +31,10 @@ class TestConfigModels:
     def test_slack_config_creation(self):
         """Test SlackConfig creation"""
         config = SlackConfig(
-            channel="#test", token="xoxb-test-token", username="TestBot", icon_emoji=":robot:"
+            channel="#test",
+            token="xoxb-test-token",
+            username="TestBot",
+            icon_emoji=":robot:",
         )
         assert config.channel == "#test"
         assert config.token == "xoxb-test-token"
@@ -44,7 +53,9 @@ class TestConfigModels:
     @pytest.mark.unit
     def test_remediator_config_creation(self):
         """Test RemediatorConfig creation"""
-        config = RemediatorConfig(url="http://localhost:5001", timeout=30, retry_attempts=3)
+        config = RemediatorConfig(
+            url="http://localhost:5001", timeout=30, retry_attempts=3
+        )
         assert config.url == "http://localhost:5001"
         assert config.timeout == 30
         assert config.retry_attempts == 3

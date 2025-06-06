@@ -164,7 +164,9 @@ class RemediationClient:
             elif status_code == 404:
                 raise RemediationError(f"Unknown issue type: {issue_type}")
             elif status_code == 503:
-                raise ServiceUnavailableError("Remediation service temporarily unavailable")
+                raise ServiceUnavailableError(
+                    "Remediation service temporarily unavailable"
+                )
             else:
                 raise RemediationError(f"HTTP error {status_code}: {e}")
 
@@ -175,7 +177,10 @@ class RemediationClient:
         """Get the status of the remediation service."""
         try:
             # Try new API first, then legacy
-            urls_to_try = [f"{self.config.url}/api/remediation/status", f"{self.config.url}/status"]
+            urls_to_try = [
+                f"{self.config.url}/api/remediation/status",
+                f"{self.config.url}/status",
+            ]
 
             for url in urls_to_try:
                 try:

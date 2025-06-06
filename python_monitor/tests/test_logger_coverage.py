@@ -43,7 +43,9 @@ class TestGetLogger:
 
             result = get_logger("test_logger")
 
-            mock_setup_logging.assert_called_once_with(name="test_logger", level="DEBUG")
+            mock_setup_logging.assert_called_once_with(
+                name="test_logger", level="DEBUG"
+            )
             assert result == mock_logger
 
     def test_get_logger_existing_handlers(self):
@@ -99,7 +101,9 @@ class TestSetupLogging:
             mock_console_handler = Mock()
             mock_stream_handler.return_value = mock_console_handler
 
-            result = setup_logging("test_logger", "INFO", log_to_file=False, log_to_console=True)
+            result = setup_logging(
+                "test_logger", "INFO", log_to_file=False, log_to_console=True
+            )
 
             mock_logger.setLevel.assert_called_with(logging.INFO)
             mock_logger.handlers.clear.assert_called_once()

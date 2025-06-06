@@ -180,23 +180,31 @@ class TestValidators:
 
     def test_validate_hostname_invalid_chars(self):
         """Test hostname with invalid characters raises ValidationError"""
-        with pytest.raises(ValidationError, match="Hostname contains invalid characters"):
+        with pytest.raises(
+            ValidationError, match="Hostname contains invalid characters"
+        ):
             validate_hostname("host@name")
 
     def test_validate_hostname_consecutive_dots(self):
         """Test hostname with consecutive dots raises ValidationError"""
-        with pytest.raises(ValidationError, match="Hostname cannot contain consecutive dots"):
+        with pytest.raises(
+            ValidationError, match="Hostname cannot contain consecutive dots"
+        ):
             validate_hostname("host..example.com")
 
     def test_validate_hostname_start_end_hyphen(self):
         """Test hostname starting with hyphen raises ValidationError"""
-        with pytest.raises(ValidationError, match="Hostname cannot start or end with hyphen"):
+        with pytest.raises(
+            ValidationError, match="Hostname cannot start or end with hyphen"
+        ):
             validate_hostname("-hostname")
 
     def test_validate_hostname_empty_labels(self):
         """Test hostname with empty labels raises ValidationError"""
         # Test leading dot (creates empty first label)
-        with pytest.raises(ValidationError, match="Hostname cannot contain empty labels"):
+        with pytest.raises(
+            ValidationError, match="Hostname cannot contain empty labels"
+        ):
             validate_hostname(".example.com")
 
     def test_validate_hostname_long_label(self):
@@ -206,7 +214,9 @@ class TestValidators:
 
     def test_validate_hostname_label_hyphen(self):
         """Test hostname label with hyphen raises ValidationError"""
-        with pytest.raises(ValidationError, match="Hostname label cannot start or end with hyphen"):
+        with pytest.raises(
+            ValidationError, match="Hostname label cannot start or end with hyphen"
+        ):
             validate_hostname("host.-label.com")
 
     # Config Section Tests
@@ -270,7 +280,9 @@ class TestValidators:
             "disk_threshold": 90,
             "check_interval": -10,
         }
-        with pytest.raises(ValidationError, match="Check interval must be a positive number"):
+        with pytest.raises(
+            ValidationError, match="Check interval must be a positive number"
+        ):
             validate_config_section(
                 config,
                 "monitoring",

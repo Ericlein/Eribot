@@ -88,13 +88,17 @@ class SystemMonitor:
         self.logger.info("Starting system monitoring...")
 
         # Schedule regular checks
-        schedule.every(self.config.monitoring.check_interval).seconds.do(self._check_system_wrapper)
+        schedule.every(self.config.monitoring.check_interval).seconds.do(
+            self._check_system_wrapper
+        )
 
         # Perform initial check
         self._check_system_wrapper()
 
         # Start monitoring thread
-        self._monitor_thread = threading.Thread(target=self._monitoring_loop, daemon=True)
+        self._monitor_thread = threading.Thread(
+            target=self._monitoring_loop, daemon=True
+        )
         self._monitor_thread.start()
 
         # Send startup notification
@@ -291,7 +295,9 @@ class SystemMonitor:
 
             if success:
                 self.remediation_count += 1
-                self.slack_client.send_success_message(f"Remediation triggered for {issue_type}")
+                self.slack_client.send_success_message(
+                    f"Remediation triggered for {issue_type}"
+                )
             else:
                 self.slack_client.send_error_message(
                     f"Failed to trigger remediation for {issue_type}"

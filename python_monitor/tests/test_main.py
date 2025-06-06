@@ -163,7 +163,9 @@ class TestMainLogging:
     @patch("main.load_config")
     @patch("logging.basicConfig")
     @patch("logging.getLogger")
-    def test_logging_setup_basic(self, mock_get_logger, mock_basic_config, mock_load_config):
+    def test_logging_setup_basic(
+        self, mock_get_logger, mock_basic_config, mock_load_config
+    ):
         """Test that logging gets set up correctly"""
         # Mock config
         mock_config = Mock()
@@ -207,9 +209,11 @@ class TestMainLogging:
         mock_logger = Mock()
         mock_get_logger.return_value = mock_logger
 
-        with patch("main.SystemMonitor") as mock_monitor_class, patch("logging.basicConfig"), patch(
-            "psutil.cpu_count", return_value=4
-        ), patch("psutil.virtual_memory") as mock_mem:
+        with patch("main.SystemMonitor") as mock_monitor_class, patch(
+            "logging.basicConfig"
+        ), patch("psutil.cpu_count", return_value=4), patch(
+            "psutil.virtual_memory"
+        ) as mock_mem:
 
             mock_mem.return_value.total = 8 * 1024**3  # 8GB
 
@@ -229,7 +233,8 @@ class TestMainLogging:
 
             # Should have logged some system information
             system_info_found = any(
-                "System" in call or "CPU" in call or "Memory" in call for call in info_calls
+                "System" in call or "CPU" in call or "Memory" in call
+                for call in info_calls
             )
             assert system_info_found, f"No system info found in: {info_calls}"
 
@@ -242,7 +247,9 @@ class TestMainConfigPath:
         """Test main function with None config path"""
         with patch("main.load_config") as mock_load_config, patch(
             "main.SystemMonitor"
-        ) as mock_monitor_class, patch("logging.basicConfig"), patch("logging.getLogger"), patch(
+        ) as mock_monitor_class, patch("logging.basicConfig"), patch(
+            "logging.getLogger"
+        ), patch(
             "psutil.cpu_count"
         ), patch(
             "psutil.virtual_memory"
@@ -270,7 +277,9 @@ class TestMainConfigPath:
 
         with patch("main.load_config") as mock_load_config, patch(
             "main.SystemMonitor"
-        ) as mock_monitor_class, patch("logging.basicConfig"), patch("logging.getLogger"), patch(
+        ) as mock_monitor_class, patch("logging.basicConfig"), patch(
+            "logging.getLogger"
+        ), patch(
             "psutil.cpu_count"
         ), patch(
             "psutil.virtual_memory"

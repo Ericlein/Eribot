@@ -37,7 +37,9 @@ try:
         logging.warning("No .env file found - using system environment variables only")
 
 except ImportError:
-    logging.warning("python-dotenv not available - using system environment variables only")
+    logging.warning(
+        "python-dotenv not available - using system environment variables only"
+    )
 
 from .models import (
     AppConfig,
@@ -86,7 +88,9 @@ class ConfigLoader:
         possible_paths = [
             Path("config/config.yaml"),  # Relative to current dir
             Path("../config/config.yaml"),  # Relative to python_monitor
-            Path(__file__).parent.parent.parent / "config" / "config.yaml",  # Relative to this file
+            Path(__file__).parent.parent.parent
+            / "config"
+            / "config.yaml",  # Relative to this file
             Path("/opt/eribot/config/config.yaml"),  # Linux service location
             Path("C:/EriBot/config/config.yaml"),  # Windows service location
         ]
@@ -122,23 +126,37 @@ class ConfigLoader:
                     os.getenv("CPU_THRESHOLD", monitoring_yaml.get("cpu_threshold", 90))
                 ),
                 disk_threshold=int(
-                    os.getenv("DISK_THRESHOLD", monitoring_yaml.get("disk_threshold", 90))
+                    os.getenv(
+                        "DISK_THRESHOLD", monitoring_yaml.get("disk_threshold", 90)
+                    )
                 ),
                 memory_threshold=int(
-                    os.getenv("MEMORY_THRESHOLD", monitoring_yaml.get("memory_threshold", 90))
+                    os.getenv(
+                        "MEMORY_THRESHOLD", monitoring_yaml.get("memory_threshold", 90)
+                    )
                 ),
                 check_interval=int(
-                    os.getenv("CHECK_INTERVAL", monitoring_yaml.get("check_interval", 60))
+                    os.getenv(
+                        "CHECK_INTERVAL", monitoring_yaml.get("check_interval", 60)
+                    )
                 ),
             )
 
             # Load slack config with env var overrides
             slack_yaml = yaml_config.get("slack", {})
             slack_config = SlackConfig(
-                channel=os.getenv("SLACK_CHANNEL", slack_yaml.get("channel", "#devops-alerts")),
-                token=os.getenv("SLACK_BOT_TOKEN", ""),  # Must be set via env var for security
-                username=os.getenv("SLACK_USERNAME", slack_yaml.get("username", "EriBot")),
-                icon_emoji=os.getenv("SLACK_ICON", slack_yaml.get("icon_emoji", ":robot_face:")),
+                channel=os.getenv(
+                    "SLACK_CHANNEL", slack_yaml.get("channel", "#devops-alerts")
+                ),
+                token=os.getenv(
+                    "SLACK_BOT_TOKEN", ""
+                ),  # Must be set via env var for security
+                username=os.getenv(
+                    "SLACK_USERNAME", slack_yaml.get("username", "EriBot")
+                ),
+                icon_emoji=os.getenv(
+                    "SLACK_ICON", slack_yaml.get("icon_emoji", ":robot_face:")
+                ),
             )
 
             # Load remediator config with env var overrides
@@ -148,9 +166,13 @@ class ConfigLoader:
                     "REMEDIATOR_URL",
                     remediator_yaml.get("url", "http://localhost:5001"),
                 ),
-                timeout=int(os.getenv("REMEDIATOR_TIMEOUT", remediator_yaml.get("timeout", 30))),
+                timeout=int(
+                    os.getenv("REMEDIATOR_TIMEOUT", remediator_yaml.get("timeout", 30))
+                ),
                 retry_attempts=int(
-                    os.getenv("REMEDIATOR_RETRIES", remediator_yaml.get("retry_attempts", 3))
+                    os.getenv(
+                        "REMEDIATOR_RETRIES", remediator_yaml.get("retry_attempts", 3)
+                    )
                 ),
             )
 
@@ -158,7 +180,9 @@ class ConfigLoader:
             logging_yaml = yaml_config.get("logging", {})
             logging_config = LoggingConfig(
                 level=os.getenv("LOG_LEVEL", logging_yaml.get("level", "INFO")),
-                max_file_size=os.getenv("LOG_MAX_SIZE", logging_yaml.get("max_file_size", "10MB")),
+                max_file_size=os.getenv(
+                    "LOG_MAX_SIZE", logging_yaml.get("max_file_size", "10MB")
+                ),
                 backup_count=int(
                     os.getenv("LOG_BACKUP_COUNT", logging_yaml.get("backup_count", 5))
                 ),
@@ -206,8 +230,12 @@ class ConfigLoader:
         if not self._config.slack.token:
             errors.append("SLACK_BOT_TOKEN environment variable is required")
 
-        if self._config.slack.token and not self._config.slack.token.startswith("xoxb-"):
-            errors.append("SLACK_BOT_TOKEN must be a valid bot token (starts with 'xoxb-')")
+        if self._config.slack.token and not self._config.slack.token.startswith(
+            "xoxb-"
+        ):
+            errors.append(
+                "SLACK_BOT_TOKEN must be a valid bot token (starts with 'xoxb-')"
+            )
 
         # Validate thresholds (1-100%)
         if not (1 <= self._config.monitoring.cpu_threshold <= 100):
@@ -233,7 +261,9 @@ class ConfigLoader:
 
         # Validate Slack channel format
         if not self._config.slack.channel.startswith("#"):
-            errors.append(f"Slack channel must start with '#', got {self._config.slack.channel}")
+            errors.append(
+                f"Slack channel must start with '#', got {self._config.slack.channel}"
+            )
 
         # Validate remediator URL
         if not self._config.remediator.url.startswith(("http://", "https://")):

@@ -110,7 +110,9 @@ class TestSlackClientUnit:
         from config.models import SlackConfig
 
         # Test with empty token
-        invalid_config = SlackConfig(channel="#test", token="", username="TestBot")  # Empty token
+        invalid_config = SlackConfig(
+            channel="#test", token="", username="TestBot"
+        )  # Empty token
 
         with pytest.raises(AuthenticationError, match="SLACK_BOT_TOKEN is required"):
             SlackClient(invalid_config)

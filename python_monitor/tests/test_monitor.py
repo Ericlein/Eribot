@@ -13,7 +13,9 @@ class TestMonitor:
     @pytest.mark.unit
     @patch("core.monitor.RemediationClient")
     @patch("core.monitor.SlackClient")
-    def test_system_monitor_creation(self, mock_slack_client, mock_remediation_client, app_config):
+    def test_system_monitor_creation(
+        self, mock_slack_client, mock_remediation_client, app_config
+    ):
         """Test that SystemMonitor can be created"""
         from core.monitor import SystemMonitor
 
@@ -157,7 +159,9 @@ class TestMonitor:
     @pytest.mark.unit
     @patch("core.monitor.RemediationClient")
     @patch("core.monitor.SlackClient")
-    def test_monitor_status(self, mock_slack_client, mock_remediation_client, app_config):
+    def test_monitor_status(
+        self, mock_slack_client, mock_remediation_client, app_config
+    ):
         """Test getting monitor status"""
         from core.monitor import SystemMonitor
 
@@ -177,7 +181,9 @@ class TestMonitor:
     @pytest.mark.unit
     @patch("core.monitor.RemediationClient")
     @patch("core.monitor.SlackClient")
-    def test_monitor_start_stop(self, mock_slack_client, mock_remediation_client, app_config):
+    def test_monitor_start_stop(
+        self, mock_slack_client, mock_remediation_client, app_config
+    ):
         """Test monitor start and stop functionality"""
         from core.monitor import SystemMonitor
 
