@@ -1,5 +1,6 @@
-"""
+﻿"""
 Pytest configuration and shared fixtures for EriBot tests
+Fixed for new module structure
 """
 
 import pytest
@@ -9,13 +10,9 @@ import yaml
 from unittest.mock import Mock, patch
 from datetime import datetime
 
-# Add parent directory to path for imports
-import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from config_loader import SlackConfig, MonitoringConfig, RemediatorConfig, AppConfig
-from health_checker import HealthStatus
-
+# Import from new structure
+from config.models import SlackConfig, MonitoringConfig, RemediatorConfig, AppConfig
+from core.health import HealthStatus
 
 @pytest.fixture
 def mock_env_vars():
@@ -32,7 +29,6 @@ def mock_env_vars():
     
     with patch.dict(os.environ, env_vars):
         yield env_vars
-
 
 @pytest.fixture
 def test_config():
@@ -53,7 +49,6 @@ def test_config():
         }
     }
 
-
 @pytest.fixture
 def temp_config_file(test_config):
     """Create a temporary config file for testing"""
@@ -66,7 +61,6 @@ def temp_config_file(test_config):
     # Cleanup
     os.unlink(temp_file)
 
-
 @pytest.fixture
 def slack_config():
     """Create a test Slack configuration"""
@@ -75,32 +69,33 @@ def slack_config():
         token='xoxb-test-token-123456789-123456789-abcdefghijklmnopqrstuvwx'
     )
 
-
 @pytest.fixture
 def monitoring_config():
     """Create a test monitoring configuration"""
     return MonitoringConfig(
         cpu_threshold=90,
         disk_threshold=90,
+        memory_threshold=90,
         check_interval=60
     )
-
 
 @pytest.fixture
 def remediator_config():
     """Create a test remediator configuration"""
     return RemediatorConfig(url='http://localhost:5001')
 
-
 @pytest.fixture
 def app_config(monitoring_config, slack_config, remediator_config):
     """Create a complete test application configuration"""
+    from config.models import LoggingConfig
+    logging_config = LoggingConfig()
+    
     return AppConfig(
         monitoring=monitoring_config,
         slack=slack_config,
-        remediator=remediator_config
+        remediator=remediator_config,
+        logging=logging_config
     )
-
 
 @pytest.fixture
 def healthy_system_metrics():
@@ -125,32 +120,6 @@ def healthy_system_metrics():
             'total_gb': 500.0
         }
     }
-
-
-@pytest.fixture
-def unhealthy_system_metrics():
-    """Mock unhealthy system metrics"""
-    return {
-        'timestamp': datetime.now().isoformat(),
-        'hostname': 'test-server',
-        'platform': 'Linux',
-        'cpu': {
-            'percent': 95.0,  # High CPU
-            'count': 4,
-            'load_avg': [3.0, 3.5, 4.0]
-        },
-        'memory': {
-            'percent': 95.0,  # High memory
-            'available_gb': 0.5,
-            'total_gb': 16.0
-        },
-        'disk': {
-            'percent': 95.0,  # High disk
-            'free_gb': 5.0,
-            'total_gb': 500.0
-        }
-    }
-
 
 @pytest.fixture
 def mock_psutil():
@@ -189,11 +158,10 @@ def mock_psutil():
             'disk': mock_disk
         }
 
-
 @pytest.fixture
 def mock_slack_client():
     """Mock Slack WebClient"""
-    with patch('slack_client.WebClient') as mock_webclient:
+    with patch('clients.slack.WebClient') as mock_webclient:
         mock_instance = Mock()
         mock_webclient.return_value = mock_instance
         
@@ -213,30 +181,6 @@ def mock_slack_client():
         
         yield mock_instance
 
-
-@pytest.fixture
-def mock_requests():
-    """Mock requests module for HTTP calls"""
-    with patch('requests.get') as mock_get, \
-         patch('requests.post') as mock_post:
-        
-        # Mock successful responses
-        mock_response = Mock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {'status': 'healthy'}
-        mock_response.text = 'OK'
-        mock_response.raise_for_status.return_value = None
-        
-        mock_get.return_value = mock_response
-        mock_post.return_value = mock_response
-        
-        yield {
-            'get': mock_get,
-            'post': mock_post,
-            'response': mock_response
-        }
-
-
 @pytest.fixture
 def healthy_health_status():
     """Create a healthy HealthStatus object"""
@@ -247,57 +191,6 @@ def healthy_health_status():
         details={'test': 'data'},
         duration_ms=50.0
     )
-
-
-@pytest.fixture
-def unhealthy_health_status():
-    """Create an unhealthy HealthStatus object"""
-    return HealthStatus(
-        is_healthy=False,
-        status="unhealthy: high CPU usage",
-        timestamp=datetime.now(),
-        details={'cpu_percent': 95.0, 'error': 'threshold exceeded'},
-        duration_ms=75.0
-    )
-
-
-@pytest.fixture
-def mock_file_operations():
-    """Mock file system operations"""
-    with patch('builtins.open') as mock_open_func, \
-         patch('os.path.exists') as mock_exists, \
-         patch('os.makedirs') as mock_makedirs, \
-         patch('tempfile.NamedTemporaryFile') as mock_temp:
-        
-        mock_exists.return_value = True
-        mock_makedirs.return_value = None
-        
-        # Mock temporary file
-        mock_temp_file = Mock()
-        mock_temp_file.name = '/tmp/test_file'
-        mock_temp.return_value.__enter__.return_value = mock_temp_file
-        
-        yield {
-            'open': mock_open_func,
-            'exists': mock_exists,
-            'makedirs': mock_makedirs,
-            'temp': mock_temp
-        }
-
-
-@pytest.fixture
-def mock_socket():
-    """Mock socket operations for network tests"""
-    with patch('socket.socket') as mock_socket_class:
-        mock_socket_instance = Mock()
-        mock_socket_class.return_value = mock_socket_instance
-        
-        # Mock successful connection
-        mock_socket_instance.connect_ex.return_value = 0
-        mock_socket_instance.close.return_value = None
-        
-        yield mock_socket_instance
-
 
 @pytest.fixture(autouse=True)
 def clean_environment():
@@ -310,15 +203,6 @@ def clean_environment():
     # Restore environment
     os.environ.clear()
     os.environ.update(original_env)
-
-
-@pytest.fixture
-def capture_logs(caplog):
-    """Capture logs with specific level"""
-    import logging
-    with caplog.at_level(logging.DEBUG):
-        yield caplog
-
 
 # Test markers
 def pytest_configure(config):
@@ -336,54 +220,11 @@ def pytest_configure(config):
         "markers", "network: mark test as requiring network access"
     )
 
-
-# Test utilities
-class TestHelpers:
-    """Helper functions for tests"""
-    
-    @staticmethod
-    def create_mock_response(status_code=200, json_data=None, text="OK"):
-        """Create a mock HTTP response"""
-        mock_response = Mock()
-        mock_response.status_code = status_code
-        mock_response.json.return_value = json_data or {}
-        mock_response.text = text
-        mock_response.raise_for_status.return_value = None
-        return mock_response
-    
-    @staticmethod
-    def assert_health_status(health_status, expected_healthy=True, expected_status=None):
-        """Assert health status properties"""
-        assert isinstance(health_status, HealthStatus)
-        assert health_status.is_healthy == expected_healthy
-        if expected_status:
-            assert expected_status in health_status.status
-        assert health_status.duration_ms >= 0
-        assert isinstance(health_status.details, dict)
-    
-    @staticmethod
-    def assert_config_valid(config, config_type):
-        """Assert configuration is valid"""
-        assert isinstance(config, config_type)
-        # Add specific assertions based on config type
-        if hasattr(config, 'cpu_threshold'):
-            assert 0 <= config.cpu_threshold <= 100
-        if hasattr(config, 'channel'):
-            assert config.channel.startswith('#')
-
-
-@pytest.fixture
-def test_helpers():
-    """Provide test helper functions"""
-    return TestHelpers
-
-
 # Custom assertions
 def assert_no_errors(caplog):
     """Assert no error logs were captured"""
     errors = [record for record in caplog.records if record.levelno >= 40]  # ERROR and CRITICAL
     assert len(errors) == 0, f"Unexpected errors: {[r.message for r in errors]}"
-
 
 def assert_contains_log(caplog, message, level="INFO"):
     """Assert that logs contain a specific message"""
@@ -394,7 +235,6 @@ def assert_contains_log(caplog, message, level="INFO"):
         if record.levelno == level_num and message in record.message
     ]
     assert len(matching_records) > 0, f"Expected log message '{message}' not found"
-
 
 # Add custom assertions to pytest namespace
 pytest.assert_no_errors = assert_no_errors
