@@ -101,6 +101,20 @@ jobs:
         flags: python
         name: python-coverage
 
+    - name: Send Slack notification on success
+      if: success()
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"✅ **EriBot Python Monitor build succeeded!**\n\n• **Branch:** $GITHUB_REF_NAME\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\nPython build and tests completed successfully!\n\nView details: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Send Slack notification on failure
+      if: failure()
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"❌ **EriBot Python Monitor build failed!**\n\n• **Branch:** $GITHUB_REF_NAME\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\nPython build or tests failed. Please check the logs.\n\nView details: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
+
   test-csharp:
     runs-on: ubuntu-latest
     
@@ -133,3 +147,17 @@ jobs:
         file: csharp_remediator/tests/coverage.opencover.xml
         flags: csharp
         name: csharp-coverage
+
+    - name: Send Slack notification on C# build success
+      if: success()
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"✅ **EriBot C# Remediator build succeeded!**\n\n• **Branch:** $GITHUB_REF_NAME\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\nC# build and tests completed successfully!\n\nView details: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
+
+    - name: Send Slack notification on C# build failure
+      if: failure()
+      run: |
+        curl -X POST -H 'Content-type: application/json' \
+        --data "{\"text\":\"❌ **EriBot C# Remediator build failed!**\n\n• **Branch:** $GITHUB_REF_NAME\n• **Commit:** ${GITHUB_SHA:0:7}\n• **Actor:** $GITHUB_ACTOR\n\nC# build or tests failed. Please check the logs.\n\nView details: https://github.com/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" \
+        ${{ secrets.SLACK_WEBHOOK_URL }}
