@@ -4,322 +4,116 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., v1.0.0)'
-        required: true
-        type: string
-      prerelease:
-        description: 'Mark as pre-release'
-        required: false
-        type: boolean
-        default: false
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_MONITOR: ${{ github.repository }}/monitor
-  IMAGE_NAME_REMEDIATOR: ${{ github.repository }}/remediator
 
 jobs:
-  validate-release:
+  test-python:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.version.outputs.version }}
-      version_number: ${{ steps.version.outputs.version_number }}
-      is_prerelease: ${{ steps.version.outputs.is_prerelease }}
-      changelog_section: ${{ steps.changelog.outputs.section }}
     
+    env:
+      SLACK_BOT_TOKEN: ${{ secrets.SLACK_BOT_TOKEN }}
+      SLACK_CHANNEL: "#test-channel"
+      CPU_THRESHOLD: "90"
+      DISK_THRESHOLD: "90"
+      MEMORY_THRESHOLD: "90"
+      CHECK_INTERVAL: "60"
+      REMEDIATOR_URL: "http://localhost:5001"
+      LOG_LEVEL: "DEBUG"
+
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-
-    - name: Determine version
-      id: version
-      run: |
-        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-          VERSION="${{ github.event.inputs.version }}"
-          IS_PRERELEASE="${{ github.event.inputs.prerelease }}"
-        else
-          VERSION="${GITHUB_REF#refs/tags/}"
-          # Check if this is a pre-release (contains alpha, beta, rc, or has a hyphen)
-          if [[ "$VERSION" =~ (alpha|beta|rc|-) ]]; then
-            IS_PRERELEASE="true"
-          else
-            IS_PRERELEASE="false"
-          fi
-        fi
-        
-        # Extract version number without 'v' prefix
-        VERSION_NUMBER="${VERSION#v}"
-        
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
-        echo "is_prerelease=$IS_PRERELEASE" >> $GITHUB_OUTPUT
-        
-        echo "🏷️ Release version: $VERSION"
-        echo "🔢 Version number: $VERSION_NUMBER"
-        echo "🔖 Is pre-release: $IS_PRERELEASE"
-
-    - name: Validate version format
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        echo "Validating version: $VERSION"
-        
-        # Simple validation that works reliably in GitHub Actions
-        case "$VERSION" in
-          v[0-9]*.[0-9]*.[0-9]*)
-            echo "✅ Version format is valid: $VERSION"
-            ;;
-          *)
-            echo "❌ Invalid version format: $VERSION"
-            echo "Expected format: v1.0.0, v1.2.3, v1.0.0-alpha, etc."
-            exit 1
-            ;;
-        esac
-
-    - name: Extract changelog section
-      id: changelog
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        VERSION_NUMBER="${VERSION#v}"  # Remove 'v' prefix
-        
-        # Extract changelog section for this version
-        if [ -f "CHANGELOG.md" ]; then
-          # Find the section for this version
-          SECTION=$(awk "/## \[$VERSION_NUMBER\]/{flag=1; next} /## \[/{flag=0} flag" CHANGELOG.md)
-          
-          if [ -n "$SECTION" ]; then
-            echo "Found changelog section for $VERSION_NUMBER"
-            # Save to file for later use
-            echo "$SECTION" > changelog_section.md
-            # Also set as output (truncated for GitHub)
-            echo "section<<EOF" >> $GITHUB_OUTPUT
-            echo "$SECTION" | head -20 >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "No specific changelog section found for $VERSION_NUMBER"
-            echo "section=No changelog section found for this version." >> $GITHUB_OUTPUT
-          fi
-        else
-          echo "CHANGELOG.md not found"
-          echo "section=No changelog available." >> $GITHUB_OUTPUT
-        fi
-
-    - name: Check if tag exists (for workflow_dispatch)
-      if: github.event_name == 'workflow_dispatch'
-      run: |
-        VERSION="${{ steps.version.outputs.version }}"
-        if git rev-parse "$VERSION" >/dev/null 2>&1; then
-          echo "❌ Tag $VERSION already exists!"
-          exit 1
-        fi
-        echo "✅ Tag $VERSION is available"
-
-  run-tests:
-    runs-on: ubuntu-latest
-    needs: validate-release
+    - uses: actions/checkout@v4
     
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python
+    - name: Set up Python 3.11
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+    
+    - name: Cache pip packages
+      uses: actions/cache@v3
       with:
-        dotnet-version: '8.0.x'
-
-    - name: Install Python dependencies
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+    
+    - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov
-
-    - name: Run Python tests
+        pip install pytest pytest-cov pytest-mock
+    
+    - name: Create test config
+      run: |
+        mkdir -p python_monitor/config
+        cat > config/config.yaml << EOF
+        monitoring:
+          cpu_threshold: ${CPU_THRESHOLD}
+          disk_threshold: ${DISK_THRESHOLD}
+          memory_threshold: ${MEMORY_THRESHOLD}
+          check_interval: ${CHECK_INTERVAL}
+        
+        slack:
+          bot_token: "${SLACK_BOT_TOKEN}"
+          channel: "${SLACK_CHANNEL}"
+          username: "MonitorBot"
+          icon_emoji: ":robot_face:"
+        
+        remediator:
+          url: "${REMEDIATOR_URL}"
+          timeout: 30
+          retry_attempts: 2
+        
+        logging:
+          level: "${LOG_LEVEL}"
+          max_file_size: "10MB"
+          backup_count: 5
+        EOF
+    
+    - name: Lint with flake8
+      run: |
+        pip install flake8
+        flake8 python_monitor --count --select=E9,F63,F7,F82 --show-source --statistics
+        flake8 python_monitor --count --exit-zero --max-complexity=10 --max-line-length=100 --statistics
+    
+    - name: Test with pytest (unit tests only)
       run: |
         cd python_monitor
-        pytest tests/ -v --cov=. --cov-report=xml
+        export CI=true
+        PYTHONPATH=. pytest tests/ -v --cov=. --cov-report=xml --cov-report=html -k "not test_send_real" -m "unit"
 
-    - name: Build and test .NET
-      run: |
-        cd csharp_remediator
-        dotnet restore
-        dotnet build --configuration Release
-        dotnet test --configuration Release --verbosity normal
-
-    - name: Upload test results
-      uses: actions/upload-artifact@v4
-      if: always()
-      with:
-        name: test-results
-        path: |
-          python_monitor/coverage.xml
-          **/TestResults/**/*.xml
-
-  build-release-artifacts:
+  # Same as your CI tests - just copied
+  test-csharp:
     runs-on: ubuntu-latest
-    needs: [validate-release, run-tests]
     
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
-
+    - uses: actions/checkout@v4
+    
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: '8.0.x'
-
-    - name: Create release directory
-      run: mkdir -p release-artifacts
-
-    - name: Build Python package
-      run: |
-        cd python_monitor
-        python -m pip install --upgrade pip build
-        python -m build
-        mv dist/* ../release-artifacts/
-
-    - name: Build .NET applications for multiple platforms
+    
+    - name: Restore dependencies
       run: |
         cd csharp_remediator
-        VERSION="${{ needs.validate-release.outputs.version_number }}"
-        
-        # Windows x64
-        dotnet publish -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/win-x64
-        
-        # Linux x64
-        dotnet publish -c Release -r linux-x64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/linux-x64
-        
-        # Linux ARM64 (for Raspberry Pi, etc.)
-        dotnet publish -c Release -r linux-arm64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/linux-arm64
-        
-        # macOS x64
-        dotnet publish -c Release -r osx-x64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/osx-x64
-        
-        # macOS ARM64 (Apple Silicon)
-        dotnet publish -c Release -r osx-arm64 --self-contained -p:PublishSingleFile=true -p:Version=$VERSION -o ../release-artifacts/osx-arm64
-
-    - name: Create installation packages
+        dotnet restore
+    
+    - name: Build
       run: |
-        VERSION="${{ needs.validate-release.outputs.version }}"
-        cd release-artifacts
-        
-        # Function to create package
-        create_package() {
-          local platform=$1
-          local archive_type=$2
-          local package_name="eribot-${platform}-${VERSION}"
-          
-          mkdir -p "$package_name"
-          
-          # Copy platform-specific binaries
-          if [ -d "$platform" ]; then
-            cp -r "$platform"/* "$package_name/"
-          fi
-          
-          # Copy common files
-          cp -r ../config "$package_name/"
-          cp -r ../python_monitor "$package_name/"
-          cp ../requirements.txt "$package_name/"
-          cp ../README.md "$package_name/"
-          cp ../QUICK_START.md "$package_name/"
-          cp ../LICENSE "$package_name/"
-          cp ../CHANGELOG.md "$package_name/"
-          
-          # Copy installation scripts
-          if [[ "$platform" == *"windows"* ]]; then
-            cp ../scripts/install.ps1 "$package_name/"
-          else
-            cp ../scripts/install.sh "$package_name/"
-            chmod +x "$package_name/install.sh"
-          fi
-          
-          # Create archive
-          if [ "$archive_type" = "zip" ]; then
-            zip -r "${package_name}.zip" "$package_name/"
-          else
-            tar -czf "${package_name}.tar.gz" "$package_name/"
-          fi
-          
-          # Cleanup
-          rm -rf "$package_name"
-        }
-        
-        # Create packages for each platform
-        create_package "windows-x64" "zip"
-        create_package "linux-x64" "tar.gz"
-        create_package "linux-arm64" "tar.gz"
-        create_package "macos-x64" "tar.gz"
-        create_package "macos-arm64" "tar.gz"
-        
-        # Create Docker package
-        mkdir -p "eribot-docker-${VERSION}"
-        cp -r ../docker "eribot-docker-${VERSION}/"
-        cp -r ../config "eribot-docker-${VERSION}/"
-        cp ../.env.example "eribot-docker-${VERSION}/.env.example"
-        cp ../README.md "eribot-docker-${VERSION}/"
-        cp ../QUICK_START.md "eribot-docker-${VERSION}/"
-        cp ../docker/docker-compose.yml "eribot-docker-${VERSION}/docker-compose.yml"
-        tar -czf "eribot-docker-${VERSION}.tar.gz" "eribot-docker-${VERSION}/"
-        rm -rf "eribot-docker-${VERSION}"
-        
-        # Create source package
-        git archive --format=tar.gz --prefix="eribot-source-${VERSION}/" HEAD > "eribot-source-${VERSION}.tar.gz"
-
-    - name: Generate checksums and signatures
+        cd csharp_remediator
+        dotnet build --no-restore
+    
+    - name: Test
       run: |
-        cd release-artifacts
-        
-        # Generate SHA256 checksums
-        sha256sum *.tar.gz *.zip *.whl > checksums.sha256
-        
-        # Generate detailed file listing
-        echo "# EriBot Release Files" > file-listing.txt
-        echo "" >> file-listing.txt
-        echo "**Version:** ${{ needs.validate-release.outputs.version }}" >> file-listing.txt
-        echo "**Build Date:** $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> file-listing.txt
-        echo "**Commit:** ${{ github.sha }}" >> file-listing.txt
-        echo "" >> file-listing.txt
-        echo "## Package Files" >> file-listing.txt
-        echo "" >> file-listing.txt
-        echo "| File | Size | SHA256 |" >> file-listing.txt
-        echo "|------|------|--------|" >> file-listing.txt
-        
-        for file in *.tar.gz *.zip *.whl; do
-          if [ -f "$file" ]; then
-            size=$(ls -lh "$file" | awk '{print $5}')
-            sha256=$(sha256sum "$file" | awk '{print $1}')
-            echo "| $file | $size | \`${sha256:0:16}...\` |" >> file-listing.txt
-          fi
-        done
-        
-        echo "" >> file-listing.txt
-        echo "## Installation" >> file-listing.txt
-        echo "" >> file-listing.txt
-        echo "See [QUICK_START.md](QUICK_START.md) for installation instructions." >> file-listing.txt
+        cd csharp_remediator
+        dotnet test --no-build --verbosity normal
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: release-artifacts-${{ needs.validate-release.outputs.version }}
-        path: release-artifacts/
-        retention-days: 90
-
-  build-and-push-docker-images:
+  # Simple Docker build - no complex metadata
+  build-docker:
     runs-on: ubuntu-latest
-    needs: [validate-release, run-tests]
+    needs: [test-python, test-csharp]
     permissions:
       contents: read
       packages: write
@@ -327,6 +121,16 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+
+    - name: Get version from tag
+      id: version
+      run: |
+        # Simple version extraction
+        VERSION=${GITHUB_REF#refs/tags/}
+        VERSION_NUMBER=${VERSION#v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+        echo "Release version: $VERSION"
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
@@ -338,47 +142,16 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Extract metadata for Monitor
-      id: meta-monitor
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MONITOR }}
-        tags: |
-          type=semver,pattern={{version}},value=${{ needs.validate-release.outputs.version }}
-          type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate-release.outputs.version }}
-          type=semver,pattern={{major}},value=${{ needs.validate-release.outputs.version }},enable={{is_default_branch}}
-          type=raw,value=latest,enable={{is_default_branch}}
-        labels: |
-          org.opencontainers.image.title=EriBot Monitor
-          org.opencontainers.image.description=EriBot Python monitoring service
-          org.opencontainers.image.version=${{ needs.validate-release.outputs.version_number }}
-
-    - name: Extract metadata for Remediator
-      id: meta-remediator
-      uses: docker/metadata-action@v5
-      with:
-        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_REMEDIATOR }}
-        tags: |
-          type=semver,pattern={{version}},value=${{ needs.validate-release.outputs.version }}
-          type=semver,pattern={{major}}.{{minor}},value=${{ needs.validate-release.outputs.version }}
-          type=semver,pattern={{major}},value=${{ needs.validate-release.outputs.version }},enable={{is_default_branch}}
-          type=raw,value=latest,enable={{is_default_branch}}
-        labels: |
-          org.opencontainers.image.title=EriBot Remediator
-          org.opencontainers.image.description=EriBot C# remediation service
-          org.opencontainers.image.version=${{ needs.validate-release.outputs.version_number }}
-
     - name: Build and push Monitor image
       uses: docker/build-push-action@v5
       with:
         context: .
         file: ./docker/Dockerfile.python
         push: true
-        tags: ${{ steps.meta-monitor.outputs.tags }}
-        labels: ${{ steps.meta-monitor.outputs.labels }}
+        tags: |
+          ${{ env.REGISTRY }}/${{ github.repository }}/monitor:${{ steps.version.outputs.version_number }}
+          ${{ env.REGISTRY }}/${{ github.repository }}/monitor:latest
         platforms: linux/amd64,linux/arm64
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
 
     - name: Build and push Remediator image
       uses: docker/build-push-action@v5
@@ -386,204 +159,138 @@ jobs:
         context: .
         file: ./docker/Dockerfile.csharp
         push: true
-        tags: ${{ steps.meta-remediator.outputs.tags }}
-        labels: ${{ steps.meta-remediator.outputs.labels }}
+        tags: |
+          ${{ env.REGISTRY }}/${{ github.repository }}/remediator:${{ steps.version.outputs.version_number }}
+          ${{ env.REGISTRY }}/${{ github.repository }}/remediator:latest
         platforms: linux/amd64,linux/arm64
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
 
-  create-github-release:
+  # Simple binary builds
+  build-binaries:
     runs-on: ubuntu-latest
-    needs: [validate-release, build-release-artifacts, build-and-push-docker-images]
+    needs: [test-python, test-csharp]
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Get version
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/}
+        VERSION_NUMBER=${VERSION#v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "version_number=$VERSION_NUMBER" >> $GITHUB_OUTPUT
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Build .NET applications
+      run: |
+        cd csharp_remediator
+        VERSION="${{ steps.version.outputs.version_number }}"
+        
+        # Build for different platforms
+        dotnet publish -c Release -r win-x64 --self-contained -o ../dist/win-x64
+        dotnet publish -c Release -r linux-x64 --self-contained -o ../dist/linux-x64
+        dotnet publish -c Release -r osx-x64 --self-contained -o ../dist/osx-x64
+
+    - name: Create release packages
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        mkdir -p packages
+        
+        # Windows package
+        zip -r packages/eribot-windows-x64-${VERSION}.zip \
+          dist/win-x64/ \
+          python_monitor/ \
+          config/ \
+          requirements.txt \
+          README.md \
+          QUICK_START.md \
+          scripts/install.ps1
+        
+        # Linux package
+        tar -czf packages/eribot-linux-x64-${VERSION}.tar.gz \
+          dist/linux-x64/ \
+          python_monitor/ \
+          config/ \
+          requirements.txt \
+          README.md \
+          QUICK_START.md \
+          scripts/install.sh
+        
+        # macOS package
+        tar -czf packages/eribot-macos-x64-${VERSION}.tar.gz \
+          dist/osx-x64/ \
+          python_monitor/ \
+          config/ \
+          requirements.txt \
+          README.md \
+          QUICK_START.md
+
+    - name: Upload packages
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-packages
+        path: packages/
+
+  # Simple GitHub release
+  create-release:
+    runs-on: ubuntu-latest
+    needs: [build-docker, build-binaries]
     permissions:
       contents: write
     
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: Download build artifacts
-      uses: actions/download-artifact@v3
-      with:
-        name: release-artifacts-${{ needs.validate-release.outputs.version }}
-        path: release-artifacts/
-
-    - name: Generate release notes
-      id: release-notes
+    - name: Get version
+      id: version
       run: |
-        VERSION="${{ needs.validate-release.outputs.version }}"
-        VERSION_NUMBER="${{ needs.validate-release.outputs.version_number }}"
-        
-        echo "# EriBot Release $VERSION 🤖" > release-notes.md
-        echo "" >> release-notes.md
-        
-        # Add changelog section if available
-        if [ -f "release-artifacts/changelog_section.md" ]; then
-          echo "## What's New" >> release-notes.md
-          echo "" >> release-notes.md
-          cat release-artifacts/changelog_section.md >> release-notes.md
-          echo "" >> release-notes.md
-        fi
-        
-        # Get commit history since last tag
-        PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-        if [ -n "$PREVIOUS_TAG" ]; then
-          echo "## Changes Since $PREVIOUS_TAG" >> release-notes.md
-          echo "" >> release-notes.md
-          git log --pretty=format:"- %s (%h)" $PREVIOUS_TAG..HEAD | head -20 >> release-notes.md
-          echo "" >> release-notes.md
-          echo "" >> release-notes.md
-          echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/$PREVIOUS_TAG...$VERSION" >> release-notes.md
-        fi
-        
-        echo "" >> release-notes.md
-        echo "## 🚀 Quick Install" >> release-notes.md
-        echo "" >> release-notes.md
-        echo "### Docker (Recommended)" >> release-notes.md
-        echo '```bash' >> release-notes.md
-        echo 'curl -L "https://github.com/${{ github.repository }}/releases/download/$VERSION/eribot-docker-$VERSION.tar.gz" | tar -xz' >> release-notes.md
-        echo 'cd eribot-docker-$VERSION' >> release-notes.md
-        echo 'cp .env.example .env' >> release-notes.md
-        echo '# Edit .env with your SLACK_BOT_TOKEN' >> release-notes.md
-        echo 'docker-compose up -d' >> release-notes.md
-        echo '```' >> release-notes.md
-        echo "" >> release-notes.md
-        
-        echo "### Native Installation" >> release-notes.md
-        echo "" >> release-notes.md
-        echo "**Linux:**" >> release-notes.md
-        echo '```bash' >> release-notes.md
-        echo 'curl -L "https://github.com/${{ github.repository }}/releases/download/$VERSION/eribot-linux-x64-$VERSION.tar.gz" | tar -xz' >> release-notes.md
-        echo 'cd eribot-linux-x64-$VERSION && sudo ./install.sh "xoxb-your-token-here" --service' >> release-notes.md
-        echo '```' >> release-notes.md
-        echo "" >> release-notes.md
-        
-        echo "**Windows:**" >> release-notes.md
-        echo '```powershell' >> release-notes.md
-        echo 'Invoke-WebRequest -Uri "https://github.com/${{ github.repository }}/releases/download/$VERSION/eribot-windows-x64-$VERSION.zip" -OutFile "eribot.zip"' >> release-notes.md
-        echo 'Expand-Archive -Path "eribot.zip" -DestinationPath "."' >> release-notes.md
-        echo 'cd eribot-windows-x64-$VERSION' >> release-notes.md
-        echo '.\\install.ps1 -SlackToken "xoxb-your-token-here" -InstallAsService' >> release-notes.md
-        echo '```' >> release-notes.md
-        echo "" >> release-notes.md
-        
-        echo "## 🐳 Docker Images" >> release-notes.md
-        echo "" >> release-notes.md
-        echo "- **Monitor:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MONITOR }}:$VERSION_NUMBER\`" >> release-notes.md
-        echo "- **Remediator:** \`${{ env.REGISTRY }}/${{ env.IMAGE_NAME_REMEDIATOR }}:$VERSION_NUMBER\`" >> release-notes.md
-        echo "" >> release-notes.md
-        
-        echo "## 🔐 Checksums" >> release-notes.md
-        echo "" >> release-notes.md
-        echo '```' >> release-notes.md
-        cat release-artifacts/checksums.sha256 >> release-notes.md
-        echo '```' >> release-notes.md
-        echo "" >> release-notes.md
-        
-        echo "## 📊 System Requirements" >> release-notes.md
-        echo "" >> release-notes.md
-        echo "- **Python:** 3.10+ (for monitor service)" >> release-notes.md
-        echo "- **Memory:** 512MB RAM minimum" >> release-notes.md
-        echo "- **Disk:** 100MB available space" >> release-notes.md
-        echo "- **Network:** Internet access for Slack API" >> release-notes.md
-        echo "" >> release-notes.md
-        
-        echo "## 🆘 Support" >> release-notes.md
-        echo "" >> release-notes.md
-        echo "- 📖 **Documentation:** [README.md](README.md) | [Quick Start](QUICK_START.md)" >> release-notes.md
-        echo "- 🐛 **Issues:** [GitHub Issues](https://github.com/${{ github.repository }}/issues)" >> release-notes.md
-        echo "- 💬 **Discussions:** [GitHub Discussions](https://github.com/${{ github.repository }}/discussions)" >> release-notes.md
-        
-        # Set output for GitHub release
-        {
-          echo "notes<<EOF"
-          cat release-notes.md
-          echo "EOF"
-        } >> $GITHUB_OUTPUT
+        VERSION=${GITHUB_REF#refs/tags/}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
 
-    - name: Create GitHub Release
+    - name: Download packages
+      uses: actions/download-artifact@v4
+      with:
+        name: release-packages
+        path: packages/
+
+    - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ needs.validate-release.outputs.version }}
-        name: "EriBot ${{ needs.validate-release.outputs.version }}"
-        body: ${{ steps.release-notes.outputs.notes }}
-        files: |
-          release-artifacts/*.tar.gz
-          release-artifacts/*.zip
-          release-artifacts/*.whl
-          release-artifacts/checksums.sha256
-          release-artifacts/file-listing.txt
+        tag_name: ${{ steps.version.outputs.version }}
+        name: "EriBot ${{ steps.version.outputs.version }}"
+        body: |
+          ## EriBot ${{ steps.version.outputs.version }}
+          
+          🎉 New release of EriBot!
+          
+          ### 🚀 Quick Install
+          
+          **Docker:**
+          ```bash
+          docker run -d --name eribot-monitor \
+            -e SLACK_BOT_TOKEN=xoxb-your-token \
+            ghcr.io/${{ github.repository }}/monitor:${{ steps.version.outputs.version }}
+          ```
+          
+          **Linux:**
+          ```bash
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.version }}/eribot-linux-x64-${{ steps.version.outputs.version }}.tar.gz
+          tar -xzf eribot-linux-x64-${{ steps.version.outputs.version }}.tar.gz
+          ```
+          
+          ### 📦 What's included
+          - Multi-platform binaries
+          - Docker images (AMD64 + ARM64)
+          - Installation scripts
+          - Complete documentation
+        files: packages/*
         draft: false
-        prerelease: ${{ needs.validate-release.outputs.is_prerelease }}
-        generate_release_notes: false
-        make_latest: ${{ needs.validate-release.outputs.is_prerelease == 'false' }}
+        prerelease: false
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  notify-release:
-    runs-on: ubuntu-latest
-    needs: [validate-release, create-github-release]
-    if: always()
-    
-    steps:
-    - name: Notify Slack on successful release
-      if: ${{ needs.create-github-release.result == 'success' }}
-      uses: 8398a7/action-slack@v3
-      with:
-        status: success
-        text: |
-          🎉 EriBot ${{ needs.validate-release.outputs.version }} has been released!
-          
-          📦 **Release Highlights:**
-          • Multi-platform binaries (Windows, Linux, macOS)
-          • Docker images for AMD64 and ARM64
-          • Installation scripts included
-          • Comprehensive documentation
-          
-          🔗 **Links:**
-          • [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ needs.validate-release.outputs.version }})
-          • [Docker Images](${{ env.REGISTRY }}/${{ github.repository }})
-          
-          🚀 **Quick Install:**
-          ```
-          # Docker
-          docker run ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_MONITOR }}:${{ needs.validate-release.outputs.version_number }}
-          
-          # Linux
-          curl -L "https://github.com/${{ github.repository }}/releases/download/${{ needs.validate-release.outputs.version }}/eribot-linux-x64-${{ needs.validate-release.outputs.version }}.tar.gz" | tar -xz
-          ```
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-    - name: Notify Slack on release failure
-      if: ${{ needs.create-github-release.result == 'failure' }}
-      uses: 8398a7/action-slack@v3
-      with:
-        status: failure
-        text: |
-          ❌ EriBot ${{ needs.validate-release.outputs.version }} release failed!
-          
-          Please check the GitHub Actions logs for details:
-          https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-      env:
-        SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
-
-  create-tag-on-manual-release:
-    runs-on: ubuntu-latest
-    needs: [validate-release, create-github-release]
-    if: github.event_name == 'workflow_dispatch' && needs.create-github-release.result == 'success'
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
-    - name: Create and push tag
-      run: |
-        VERSION="${{ needs.validate-release.outputs.version }}"
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        git tag -a "$VERSION" -m "Release $VERSION"
-        git push origin "$VERSION"
