@@ -13,7 +13,7 @@ from .core.monitor import SystemMonitor
 
 __all__ = [
     "load_config",
-    "AppConfig", 
+    "AppConfig",
     "SystemMonitor",
     "__version__",
 ]

@@ -2,6 +2,6 @@
 from .remediation import RemediationClient
 
 __all__ = [
-    'SlackClient',
-    'RemediationClient',
+    "SlackClient",
+    "RemediationClient",
 ]
