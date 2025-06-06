@@ -140,6 +140,7 @@ class TestCoreHealthFallbackLogic:
             # Simulate the exact scenario from the module
             try:
                 from health_checker import HealthStatus  # This might fail
+
                 print(HealthStatus.status)
             except ImportError as e:
                 # This is line 26 from the module
