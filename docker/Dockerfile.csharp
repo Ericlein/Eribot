@@ -1,59 +1,36 @@
 # Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 
-# Set metadata
-LABEL maintainer="EriBot Team"
-LABEL description="EriBot C# remediation service"
-LABEL version="1.0.0"
-
 WORKDIR /src
 
-# Copy project file
-COPY csharp_remediator/*.csproj ./
+# Copy project file and restore
+COPY csharp_remediator/*.csproj ./csharp_remediator/
+RUN dotnet restore ./csharp_remediator/
 
-# Restore dependencies
-RUN dotnet restore
-
-# Copy source code
-COPY csharp_remediator/ ./
-
-# Build and publish
-RUN dotnet publish -c Release -o /app/publish \
+# Copy source and build
+COPY csharp_remediator/ ./csharp_remediator/
+RUN dotnet publish ./csharp_remediator/ -c Release -o /app/publish \
     --no-restore \
-    --self-contained false \
-    -p:PublishReadyToRun=true
+    --self-contained false
 
-# Runtime stage
+# Runtime stage  
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 
-# Install curl for health checks
 RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
-
-# Create app user for security
 RUN groupadd -r eribot && useradd -r -g eribot eribot
 
 WORKDIR /app
-
-# Copy published app
 COPY --from=build /app/publish .
 
-# Create directories and set permissions
-RUN mkdir -p logs && \
-    chown -R eribot:eribot /app
-
-# Switch to non-root user
+RUN mkdir -p logs && chown -R eribot:eribot /app
 USER eribot
 
-# Configure ASP.NET Core
 ENV ASPNETCORE_URLS=http://*:5001
 ENV ASPNETCORE_ENVIRONMENT=Production
-
-# Expose port
 EXPOSE 5001
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:5001/health || exit 1
 
-# Start the application
-ENTRYPOINT ["dotnet", "EriBot.Remediator.dll"]
+# Use a generic approach to find the main DLL
+ENTRYPOINT ["sh", "-c", "dotnet *.dll"]
