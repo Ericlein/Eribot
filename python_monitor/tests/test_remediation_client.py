@@ -8,7 +8,6 @@ import requests
 from unittest.mock import Mock, patch
 
 # Import the classes we're testing
-import clients.remediation
 from clients.remediation import (
     RemediationClient,
     RemediationError,
