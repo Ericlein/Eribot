@@ -1,8 +1,8 @@
 # EriBot 🤖
 
-[![CI](https://github.com/Ericlein/monitor-slackbot/actions/workflows/ci.yml/badge.svg)](https://github.com/Ericlein/monitor-slackbot/actions)
-[![CD](https://github.com/Ericlein/monitor-slackbot/actions/workflows/cd.yml/badge.svg)](https://github.com/Ericlein/monitor-slackbot/actions)
-[![Security](https://github.com/Ericlein/Eribot/actions/workflows/security.yml/badge.svg)](https://github.com/Ericlein/Eribot/actions/workflows/security.yml)
+[![CI](https://github.com/Ericlein/eribot/actions/workflows/ci.yml/badge.svg)](https://github.com/Ericlein/eribot/actions)
+[![CD](https://github.com/Ericlein/eribot/actions/workflows/cd.yml/badge.svg)](https://github.com/Ericlein/eribot/actions)
+[![Security](https://github.com/Ericlein/eribot/actions/workflows/security.yml/badge.svg)](https://github.com/Ericlein/eribot/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **EriBot** is a hybrid Python + C# DevOps monitoring and auto-remediation system that watches your infrastructure and intelligently responds to issues while keeping your team informed via Slack.
@@ -386,9 +386,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - System monitoring powered by [psutil](https://github.com/giampaolo/psutil)
 - Cross-platform service capabilities with [.NET 8](https://dotnet.microsoft.com/)
 
-## 📞 Support
-
-- **Documentation**: [Wiki](https://github.com/Ericlein/eribot/wiki)
+## ❓ Support
 - **Issues**: [GitHub Issues](https://github.com/Ericlein/eribot/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/Ericlein/eribot/discussions)
 
