@@ -31,13 +31,13 @@ try:
     for env_file in env_files:
         if env_file.exists():
             load_dotenv(env_file)
-            print(f"Loaded environment from: {env_file}")
+            logging.info(f"Loaded environment from: {env_file}")
             break
     else:
-        print("No .env file found - using system environment variables only")
+        logging.warning("No .env file found - using system environment variables only")
         
 except ImportError:
-    print("python-dotenv not available - using system environment variables only")
+    logging.warning("python-dotenv not available - using system environment variables only")
 
 from .models import AppConfig, MonitoringConfig, SlackConfig, RemediatorConfig, LoggingConfig
 
