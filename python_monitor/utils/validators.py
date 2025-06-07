@@ -1,6 +1,5 @@
 """
-Streamlined validation logic for EriBot - removes unused helper functions
-python_monitor/utils/validators.py
+Streamlined validation logic
 """
 
 import re

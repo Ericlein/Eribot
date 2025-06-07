@@ -1,6 +1,5 @@
 """
 Configuration package for EriBot.
-Fixed version with correct imports.
 """
 
 from .loader import ConfigLoader, load_config

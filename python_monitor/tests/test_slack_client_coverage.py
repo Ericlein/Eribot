@@ -1,6 +1,5 @@
 """
-Additional tests for clients/slack.py to improve coverage from 60%
-Targets specific uncovered lines: 10, 50-51, 57, 63-71, 105-123, 126, 129, 132, 135-140
+Additional tests for clients/slack.py
 """
 
 import pytest

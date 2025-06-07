@@ -1,6 +1,5 @@
 """
 Simplified main.py tests that work with the actual implementation
-python_monitor/tests/test_main_simple.py
 """
 
 import pytest

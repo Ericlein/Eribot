@@ -1,6 +1,5 @@
 """
-Specific tests to hit the fallback import logic in core/health.py
-This targets the uncovered lines 12, 26-47
+Specific tests to hit the fallback import logic in health module
 """
 
 import pytest

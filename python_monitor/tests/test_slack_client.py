@@ -1,6 +1,5 @@
 ﻿"""
 Tests for Slack client module
-Fixed for new structure with proper mocking
 """
 
 import pytest

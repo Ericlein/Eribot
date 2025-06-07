@@ -3,7 +3,6 @@
 EriBot System Monitor Entry Point
 
 This is the main entry point for the EriBot monitoring service.
-Replaces the global execution in the old monitor.py.
 """
 from core.monitor import SystemMonitor
 from config import load_config

@@ -1,6 +1,5 @@
 """
 Comprehensive tests for remediation client module
-This should bring the coverage up to 80%+
 """
 
 import pytest

@@ -1,6 +1,5 @@
 """
-Simple unit tests for validators - replaces test_validators.py
-python_monitor/tests/test_validators.py
+Simple unit tests for validators
 """
 
 import pytest

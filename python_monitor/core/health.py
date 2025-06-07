@@ -1,7 +1,4 @@
-﻿# Health checking functionality - wrapper for existing health_checker
-# We'll keep using the existing health_checker.py for now since it works well
-
-import logging
+﻿import logging
 import sys
 from pathlib import Path
 

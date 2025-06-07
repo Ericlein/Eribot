@@ -1,5 +1,5 @@
 """
-Health checking module for EriBot Python monitoring service
+Health checking module for Python monitoring service
 """
 
 import logging

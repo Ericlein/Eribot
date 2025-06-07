@@ -1,6 +1,5 @@
 """
 Tests for the monitor module
-Fixed for new structure with proper mocking
 """
 
 import pytest

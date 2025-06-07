@@ -1,6 +1,5 @@
 """
 Configuration loader for EriBot.
-Fixed version with .env file loading.
 """
 
 import yaml

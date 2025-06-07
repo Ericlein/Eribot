@@ -1,6 +1,5 @@
 ﻿"""
-Comprehensive tests for core/health.py module
-This module is a wrapper that handles imports with fallbacks
+Comprehensive tests for health module
 """
 
 import pytest
