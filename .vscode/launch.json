@@ -1,0 +1,149 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Monitor Service",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/python_monitor/monitory.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/python_monitor",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/python_monitor",
+                "SLACK_BOT_TOKEN": "xoxb-test-token",
+                "SLACK_CHANNEL": "#devops-alerts",
+                "LOG_LEVEL": "DEBUG"
+            },
+            "args": []
+        },
+        {
+            "name": "Python: Debug Monitor with Config",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/python_monitor/monitory.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/python_monitor",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/python_monitor",
+                "CONFIG_PATH": "${workspaceFolder}/config/config.dev.yaml"
+            },
+            "args": ["--config", "../config/config.dev.yaml"]
+        },
+        {
+            "name": ".NET: Remediator Service",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-remediator",
+            "program": "${workspaceFolder}/csharp_remediator/bin/Debug/net8.0/Remediator.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/csharp_remediator",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5001"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": ".NET: Remediator Production Mode",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build-remediator-release",
+            "program": "${workspaceFolder}/csharp_remediator/bin/Release/net8.0/Remediator.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/csharp_remediator",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Production",
+                "ASPNETCORE_URLS": "http://localhost:5001"
+            }
+        },
+        {
+            "name": "Python: Run Tests",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "pytest",
+            "args": [
+                "${workspaceFolder}/python_monitor/tests/",
+                "-v",
+                "--tb=short"
+            ],
+            "cwd": "${workspaceFolder}/python_monitor",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/python_monitor"
+            },
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Docker: Compose Up",
+            "type": "node",
+            "request": "launch",
+            "program": "${workspaceFolder}/node_modules/.bin/docker-compose",
+            "args": [
+                "-f",
+                "${workspaceFolder}/docker/docker-compose.yml",
+                "up"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Attach to Python in Docker",
+            "type": "debugpy",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/python_monitor",
+                    "remoteRoot": "/app"
+                }
+            ],
+            "justMyCode": false
+        },
+        {
+            "name": "Health Check Test",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/python_monitor/health_checker.py",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/python_monitor",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/python_monitor"
+            },
+            "args": ["--test"]
+        }
+    ],
+    "compounds": [
+        {
+            "name": "Launch EriBot (Both Services)",
+            "configurations": [
+                ".NET: Remediator Service",
+                "Python: Monitor Service"
+            ],
+            "stopAll": true,
+            "presentation": {
+                "hidden": false,
+                "group": "EriBot",
+                "order": 1
+            }
+        },
+        {
+            "name": "Debug EriBot (Development)",
+            "configurations": [
+                ".NET: Remediator Service",
+                "Python: Debug Monitor with Config"
+            ],
+            "stopAll": true,
+            "presentation": {
+                "hidden": false,
+                "group": "EriBot",
+                "order": 2
+            }
+        }
+    ]
+}

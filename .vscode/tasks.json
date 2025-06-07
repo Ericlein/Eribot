@@ -1,0 +1,411 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build-remediator",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/csharp_remediator/Remediator.csproj",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "silent"
+            }
+        },
+        {
+            "label": "build-remediator-release",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "build",
+                "${workspaceFolder}/csharp_remediator/Remediator.csproj",
+                "--configuration",
+                "Release",
+                "/property:GenerateFullPaths=true",
+                "/consoleloggerparameters:NoSummary"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "publish-remediator",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "publish",
+                "${workspaceFolder}/csharp_remediator/Remediator.csproj",
+                "--configuration",
+                "Release",
+                "--output",
+                "${workspaceFolder}/dist/remediator"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "build"
+        },
+        {
+            "label": "test-dotnet",
+            "command": "dotnet",
+            "type": "process",
+            "args": [
+                "test",
+                "${workspaceFolder}/csharp_remediator",
+                "--verbosity",
+                "normal"
+            ],
+            "problemMatcher": "$msCompile",
+            "group": "test"
+        },
+        {
+            "label": "install-python-deps",
+            "type": "shell",
+            "command": "pip",
+            "args": [
+                "install",
+                "-r",
+                "${workspaceFolder}/requirements.txt"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "test-python",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "-m",
+                "pytest",
+                "tests/",
+                "-v",
+                "--tb=short"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}/python_monitor"
+            },
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "lint-python",
+            "type": "shell",
+            "command": "flake8",
+            "args": [
+                "${workspaceFolder}/python_monitor",
+                "--max-line-length=100",
+                "--ignore=E203,W503"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "format-python",
+            "type": "shell",
+            "command": "black",
+            "args": [
+                "${workspaceFolder}/python_monitor"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "docker-build-monitor",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "build",
+                "-f",
+                "${workspaceFolder}/docker/Dockerfile.python",
+                "-t",
+                "eribot-monitor:dev",
+                "${workspaceFolder}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "docker-build-remediator",
+            "type": "shell",
+            "command": "docker",
+            "args": [
+                "build",
+                "-f",
+                "${workspaceFolder}/docker/Dockerfile.csharp",
+                "-t",
+                "eribot-remediator:dev",
+                "${workspaceFolder}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "docker-build-all",
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "docker-build-monitor",
+                "docker-build-remediator"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "docker-compose-up",
+            "type": "shell",
+            "command": "docker-compose",
+            "args": [
+                "-f",
+                "${workspaceFolder}/docker/docker-compose.yml",
+                "up",
+                "-d"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "docker-compose-down",
+            "type": "shell",
+            "command": "docker-compose",
+            "args": [
+                "-f",
+                "${workspaceFolder}/docker/docker-compose.yml",
+                "down"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "run-integration-tests",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/tests/integration/test_end_to_end.py"
+            ],
+            "group": "test",
+            "dependsOn": [
+                "docker-compose-up"
+            ],
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "check-health",
+            "type": "shell",
+            "command": "curl",
+            "args": [
+                "-f",
+                "http://localhost:5001/health"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "test-remediation",
+            "type": "shell",
+            "command": "curl",
+            "args": [
+                "-X",
+                "POST",
+                "http://localhost:5001/remediate",
+                "-H",
+                "Content-Type: application/json",
+                "-d",
+                "{\"issueType\": \"high_cpu\", \"context\": {\"cpu_percent\": 95}}"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "setup-dev-environment",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "install-python-deps",
+                "build-remediator"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "run-all-tests",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "test-python",
+                "test-dotnet",
+                "lint-python"
+            ],
+            "group": "test",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            }
+        },
+        {
+            "label": "clean-build",
+            "type": "shell",
+            "command": "dotnet",
+            "args": [
+                "clean",
+                "${workspaceFolder}/csharp_remediator"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "clean-python-cache",
+            "type": "shell",
+            "command": "find",
+            "args": [
+                "${workspaceFolder}/python_monitor",
+                "-type",
+                "d",
+                "-name",
+                "__pycache__",
+                "-exec",
+                "rm",
+                "-rf",
+                "{}",
+                "+"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "silent",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "clean-all",
+            "dependsOrder": "parallel",
+            "dependsOn": [
+                "clean-build",
+                "clean-python-cache"
+            ],
+            "group": "build"
+        },
+        {
+            "label": "generate-docs",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/tools/generate_docs.py"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "update-version",
+            "type": "shell",
+            "command": "python",
+            "args": [
+                "${workspaceFolder}/tools/update_version.py",
+                "${input:version}"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "version",
+            "description": "Enter version number (e.g., 1.0.0)",
+            "default": "1.0.0",
+            "type": "promptString"
+        }
+    ]
+}
