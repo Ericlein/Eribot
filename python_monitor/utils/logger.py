@@ -175,11 +175,38 @@ def log_system_info(logger: logging.Logger):
     logger.info("=" * 50)
     logger.info("EriBot System Information")
     logger.info("=" * 50)
-    logger.info(f"Platform: {platform.platform()}")
-    logger.info(f"Python: {platform.python_version()}")
-    logger.info(f"CPU Count: {psutil.cpu_count()}")
-    logger.info(f"Memory: {psutil.virtual_memory().total / (1024**3):.1f} GB")
-    logger.info(f"Disk: {psutil.disk_usage('/').total / (1024**3):.1f} GB")
+
+    # Platform information
+    try:
+        logger.info(f"Platform: {platform.platform()}")
+    except Exception as e:
+        logger.error(f"Error getting platform info: {e}")
+
+    try:
+        logger.info(f"Python: {platform.python_version()}")
+    except Exception as e:
+        logger.error(f"Error getting Python version: {e}")
+
+    # CPU information
+    try:
+        logger.info(f"CPU Count: {psutil.cpu_count()}")
+    except Exception as e:
+        logger.error(f"Error getting CPU count: {e}")
+
+    # Memory information
+    try:
+        memory_gb = psutil.virtual_memory().total / (1024**3)
+        logger.info(f"Memory: {memory_gb:.1f} GB")
+    except Exception as e:
+        logger.error(f"Error getting memory info: {e}")
+
+    # Disk information
+    try:
+        disk_gb = psutil.disk_usage("/").total / (1024**3)
+        logger.info(f"Disk: {disk_gb:.1f} GB")
+    except Exception as e:
+        logger.error(f"Error getting disk info: {e}")
+
     logger.info("=" * 50)
 
 

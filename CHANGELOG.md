@@ -5,7 +5,7 @@ All notable changes to EriBot will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Release v2.0.0 - 06.06.2025
+## Release v2.0.0 - 07.06.2025
 
 ### ⚠️ Breaking Changes
 
@@ -15,17 +15,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - All core APIs (monitoring, Slack, remediation) have new class names, constructor signatures, and usage patterns.
 - Exception types and error handling interfaces have changed.
 
-## Migration
-
-- Update all imports to use the new `python_monitor` namespace.
-- Update your configuration files and environment variables to match the new required structure.
-- See the [PR diff](https://github.com/Ericlein/eribot/pull/5/files) for details on changed APIs and file structure.
-
 ## Enhancements
 
 - Improved modularity and testability
 - More robust configuration loading with `.env` support
 - Clearer error messages and exception handling
+- More tests for proper code coverage and reliability
+- Updated documentation and Quick start guides:
 
 
 ## v1.0.0 - 05.06.2025

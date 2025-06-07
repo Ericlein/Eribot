@@ -273,25 +273,31 @@ pytest tests/ -v
 ### Test Structure
 ```
 python_monitor/tests/
-├── conftest.py              # Shared fixtures and configuration
-├── test_config_loader.py    # Configuration loading tests
-├── test_slack_client.py     # Slack integration tests
-├── test_remediation.py      # Remediation client tests
-├── test_monitor.py          # Core monitoring tests
-├── test_health_checker.py   # Health checking tests
-├── test_integration.py      # End-to-end integration tests
-└── test_validators.py       # Input validation tests
+├── conftest.py                      # Shared fixtures and configuration
+├── test_config_models.py            # Configuration model tests
+├── test_exceptions.py               # Exception handling tests 
+├── test_health_checker.py           # Health checking tests
+├── test_health_fallback.py          # Health checker fallback tests
+├── test_integration.py              # End-to-end integration tests
+├── test_logger_coverage.py          # Logger coverage tests
+├── test_main.py                     # Main module tests
+├── test_monitor.py                  # Core monitoring tests
+├── test_remediation_client.py       # Remediation client tests
+├── test_slack_client.py             # Basic Slack client tests
+├── test_slack_client_coverage.py    # Additional Slack client coverage
+└── test_validators.py               # Input validation tests
 ```
 
 ### Running Specific Tests
 ```bash
 # Test configuration loading
-pytest tests/test_config_loader.py -v
+pytest tests/test_config_models.py -v
 
 # Test Slack client (unit tests only)
 pytest tests/test_slack_client.py -v -m "unit"
 
-# Test with real Slack API (requires token in .env)
+# Test with real Slack API 
+# (requires token in .env & slack channel called test-alerts)
 pytest tests/test_slack_client.py -v -m "integration" --run-integration
 
 # Test monitoring core functionality
